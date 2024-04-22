@@ -3,6 +3,7 @@
 #include <wx/image.h>
 #include <wx/filedlg.h>
 #include <wx/statbmp.h>
+#include <wx/animate.h>
 
 class MainFrame; // Forward declaration
 
@@ -25,10 +26,13 @@ public:
 
     void OnMenuImportImage(wxCommandEvent& event); // Event handler for the menu to import an image
     void ImportImage(); // Method to handle importing an image without an event
+    void ImportGifImage(const wxString& path);  // New method for GIFs
     void UpdateImageDisplay(const wxImage& image); // Update the displayed image
+    void ClearPreviousDisplay(); // Helper method to clear any existing displays
 
 private:
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
+    wxAnimationCtrl* animationCtrl; // Control for displaying animated GIFs
 
     wxDECLARE_EVENT_TABLE();
 };
@@ -61,7 +65,7 @@ void Manager::ImportImage() {
 
 // MainFrame class implementation
 MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
-    : wxFrame(nullptr, wxID_ANY, title, pos, size), imageDisplay(nullptr) {
+    : wxFrame(nullptr, wxID_ANY, title, pos, size), imageDisplay(nullptr), animationCtrl(nullptr) {
     wxMenu* menuFile = new wxMenu;
     menuFile->Append(wxID_OPEN, "&Import Image...\tCtrl-I");
 
@@ -69,13 +73,20 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     menuBar->Append(menuFile, "&File");
     SetMenuBar(menuBar);
 
-    wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
+    // Change to vertical box sizer and center alignment
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+    sizer->AddStretchSpacer(1); // Add a spacer that expands
+
+    // For imageDisplay, ensure it's centered when added
     imageDisplay = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
-    sizer->Add(imageDisplay, 1, wxEXPAND | wxALL, 5);
+    sizer->Add(imageDisplay, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
+
+    sizer->AddStretchSpacer(1); // Add another spacer that expands
     SetSizer(sizer);
 
     Centre();
 }
+
 
 // MainFrame event handler for the menu
 void MainFrame::OnMenuImportImage(wxCommandEvent& event) {
@@ -85,30 +96,83 @@ void MainFrame::OnMenuImportImage(wxCommandEvent& event) {
 // MainFrame method to import an image
 void MainFrame::ImportImage() {
     wxFileDialog openFileDialog(this, _("Open Image file"), "", "",
-        "Image files (*.bmp;*.png;*.jpg)|*.bmp;*.png;*.jpg", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        "Image files (*.bmp;*.png;*.jpg;*.gif)|*.bmp;*.png;*.jpg;*.gif", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (openFileDialog.ShowModal() == wxID_CANCEL)
-        return; // the user changed their mind
+        return; // User cancelled
 
-    wxImage image(openFileDialog.GetPath(), wxBITMAP_TYPE_ANY);
-    if (image.IsOk()) {
-        UpdateImageDisplay(image);
+    wxString path = openFileDialog.GetPath();
+    wxImage image(path, wxBITMAP_TYPE_ANY);
+    if (!image.IsOk()) {
+        wxLogError("Cannot open file '%s'.", path);
+        return;
+    }
+
+    ClearPreviousDisplay(); // Clear any existing content
+
+    // Check if the file is a GIF
+    if (path.EndsWith(".gif")) {
+        ImportGifImage(path);
     }
     else {
-        wxLogError("Cannot open file '%s'.", openFileDialog.GetPath());
+        UpdateImageDisplay(image);
     }
+}
+
+void MainFrame::ImportGifImage(const wxString& path) {
+    wxAnimation animation;
+    if (!animation.LoadFile(path)) {
+        wxLogError("Failed to load GIF file.");
+        return;
+    }
+
+    ClearPreviousDisplay(); // Ensure previous displays are cleared
+
+    if (animation.GetFrameCount() > 1) {
+        // Initialize and configure the animation control
+        animationCtrl = new wxAnimationCtrl(this, wxID_ANY);
+        animationCtrl->SetAnimation(animation);
+        animationCtrl->Play();
+        animationCtrl->Show();
+        GetSizer()->Insert(1, animationCtrl, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5); // Center the control
+    }
+    else {
+        // Static GIF handling as a single frame image
+        wxImage frameImage = animation.GetFrame(0);
+        UpdateImageDisplay(frameImage);
+    }
+    Layout();
+    Refresh();
 }
 
 // MainFrame method to update the displayed image
 void MainFrame::UpdateImageDisplay(const wxImage& image) {
+    if (!imageDisplay)
+        imageDisplay = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
     imageDisplay->SetBitmap(wxBitmap(image));
+    imageDisplay->Show();
+    if (animationCtrl) animationCtrl->Hide(); // Make sure to hide the animation control if present
     Layout();
     Refresh();
+}
+
+void MainFrame::ClearPreviousDisplay() {
+    if (imageDisplay) {
+        imageDisplay->Hide();
+    }
+    if (animationCtrl) {
+        animationCtrl->Stop();
+        animationCtrl->Hide();
+        GetSizer()->Detach(animationCtrl); // Detach the animation control from the sizer
+        delete animationCtrl; // Properly delete the control
+        animationCtrl = nullptr; // Reset the pointer
+    }
 }
 
 // App class implementation
 class App : public wxApp {
 public:
     bool OnInit() override {
+        // Initialize all standard image handlers
         wxInitAllImageHandlers();
 
         Manager* manager = new Manager();
