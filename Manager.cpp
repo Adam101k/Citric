@@ -16,15 +16,15 @@ public:
     MainFrame* mainFrame; // Pointer to the main window
 
 private:
-    
+
 };
 
 // MainFrame class declaration
 class MainFrame : public wxFrame {
 public:
     MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size);
-
     void OnMenuImportImage(wxCommandEvent& event); // Event handler for the menu to import an image
+    void OnMouseWheel(wxMouseEvent& event); // Event handler for mouse wheel
     void ImportImage(); // Method to handle importing an image without an event
     void ImportGifImage(const wxString& path);  // New method for GIFs
     void UpdateImageDisplay(const wxImage& image); // Update the displayed image
@@ -39,29 +39,8 @@ private:
 
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
 EVT_MENU(wxID_OPEN, MainFrame::OnMenuImportImage)
+EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
-
-// Manager class implementation
-Manager::Manager() {
-    // Get the size of the user's screen
-    int screenWidth, screenHeight;
-    wxDisplaySize(&screenWidth, &screenHeight);
-
-    // Set the window size to be 75% of the screen size
-    int windowWidth = screenWidth * 0.75;
-    int windowHeight = screenHeight * 0.75;
-
-    // Create the main application window
-    mainFrame = new MainFrame("Image Editor", wxDefaultPosition, wxSize(windowWidth, windowHeight));
-}
-
-void Manager::ShowMainFrame() {
-    mainFrame->Show(true);
-}
-
-void Manager::ImportImage() {
-    mainFrame->ImportImage(); // Directly call a method that doesn't need a wxCommandEvent
-}
 
 // MainFrame class implementation
 MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
@@ -73,11 +52,9 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     menuBar->Append(menuFile, "&File");
     SetMenuBar(menuBar);
 
-    // Change to vertical box sizer and center alignment
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     sizer->AddStretchSpacer(1); // Add a spacer that expands
 
-    // For imageDisplay, ensure it's centered when added
     imageDisplay = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
     sizer->Add(imageDisplay, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
 
@@ -87,13 +64,26 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     Centre();
 }
 
-
-// MainFrame event handler for the menu
 void MainFrame::OnMenuImportImage(wxCommandEvent& event) {
-    ImportImage(); // Call the import image method when the menu item is selected
+    ImportImage();
 }
 
-// MainFrame method to import an image
+void MainFrame::OnMouseWheel(wxMouseEvent& event) {
+    int rotation = event.GetWheelRotation();
+    double factor = (rotation > 0) ? 1.1 : 0.9;  // Zoom in or out
+
+    if (imageDisplay && imageDisplay->GetBitmap().IsOk()) {
+        wxImage img = imageDisplay->GetBitmap().ConvertToImage();
+        wxSize size = img.GetSize();
+        size.x = static_cast<int>(size.x * factor);
+        size.y = static_cast<int>(size.y * factor);
+        img.Rescale(size.x, size.y, wxIMAGE_QUALITY_HIGH);
+        imageDisplay->SetBitmap(wxBitmap(img));
+        Layout();
+        Refresh();
+    }
+}
+
 void MainFrame::ImportImage() {
     wxFileDialog openFileDialog(this, _("Open Image file"), "", "",
         "Image files (*.bmp;*.png;*.jpg;*.gif)|*.bmp;*.png;*.jpg;*.gif", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
@@ -109,7 +99,6 @@ void MainFrame::ImportImage() {
 
     ClearPreviousDisplay(); // Clear any existing content
 
-    // Check if the file is a GIF
     if (path.EndsWith(".gif")) {
         ImportGifImage(path);
     }
@@ -128,7 +117,6 @@ void MainFrame::ImportGifImage(const wxString& path) {
     ClearPreviousDisplay(); // Ensure previous displays are cleared
 
     if (animation.GetFrameCount() > 1) {
-        // Initialize and configure the animation control
         animationCtrl = new wxAnimationCtrl(this, wxID_ANY);
         animationCtrl->SetAnimation(animation);
         animationCtrl->Play();
@@ -136,7 +124,6 @@ void MainFrame::ImportGifImage(const wxString& path) {
         GetSizer()->Insert(1, animationCtrl, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5); // Center the control
     }
     else {
-        // Static GIF handling as a single frame image
         wxImage frameImage = animation.GetFrame(0);
         UpdateImageDisplay(frameImage);
     }
@@ -144,13 +131,13 @@ void MainFrame::ImportGifImage(const wxString& path) {
     Refresh();
 }
 
-// MainFrame method to update the displayed image
 void MainFrame::UpdateImageDisplay(const wxImage& image) {
     if (!imageDisplay)
         imageDisplay = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
-    imageDisplay->SetBitmap(wxBitmap(image));
+    wxImage scaledImage = image.Scale(image.GetWidth(), image.GetHeight(), wxIMAGE_QUALITY_HIGH);
+    imageDisplay->SetBitmap(wxBitmap(scaledImage));
     imageDisplay->Show();
-    if (animationCtrl) animationCtrl->Hide(); // Make sure to hide the animation control if present
+    if (animationCtrl) animationCtrl->Hide();
     Layout();
     Refresh();
 }
@@ -162,17 +149,35 @@ void MainFrame::ClearPreviousDisplay() {
     if (animationCtrl) {
         animationCtrl->Stop();
         animationCtrl->Hide();
-        GetSizer()->Detach(animationCtrl); // Detach the animation control from the sizer
-        delete animationCtrl; // Properly delete the control
-        animationCtrl = nullptr; // Reset the pointer
+        GetSizer()->Detach(animationCtrl);
+        delete animationCtrl;
+        animationCtrl = nullptr;
     }
+}
+
+// Manager class implementation
+Manager::Manager() {
+    int screenWidth, screenHeight;
+    wxDisplaySize(&screenWidth, &screenHeight);
+
+    int windowWidth = screenWidth * 0.75;
+    int windowHeight = screenHeight * 0.75;
+
+    mainFrame = new MainFrame("Image Editor", wxDefaultPosition, wxSize(windowWidth, windowHeight));
+}
+
+void Manager::ShowMainFrame() {
+    mainFrame->Show(true);
+}
+
+void Manager::ImportImage() {
+    mainFrame->ImportImage();
 }
 
 // App class implementation
 class App : public wxApp {
 public:
     bool OnInit() override {
-        // Initialize all standard image handlers
         wxInitAllImageHandlers();
 
         Manager* manager = new Manager();
