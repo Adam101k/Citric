@@ -34,6 +34,10 @@ private:
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
     wxAnimationCtrl* animationCtrl; // Control for displaying animated GIFs
 
+    // Stuff for zooming in and out
+    wxImage originalImage;
+    double zoomFactor = 1.0;  // Start with no zoom
+
     wxDECLARE_EVENT_TABLE();
 };
 
@@ -69,18 +73,38 @@ void MainFrame::OnMenuImportImage(wxCommandEvent& event) {
 }
 
 void MainFrame::OnMouseWheel(wxMouseEvent& event) {
+    if (!originalImage.IsOk()) {
+        // Ensure the originalImage is loaded when the image is first initialized
+        originalImage = imageDisplay->GetBitmap().ConvertToImage();
+    }
+
     int rotation = event.GetWheelRotation();
-    double factor = (rotation > 0) ? 1.1 : 0.9;  // Zoom in or out
+    // Adjust zoom factor: increase or decrease based on the wheel rotation
+    if (rotation > 0) {
+        zoomFactor *= 1.1;  // Zoom in
+    }
+    else {
+        zoomFactor *= 0.9;  // Zoom out
+    }
 
     if (imageDisplay && imageDisplay->GetBitmap().IsOk()) {
-        wxImage img = imageDisplay->GetBitmap().ConvertToImage();
-        wxSize size = img.GetSize();
-        size.x = static_cast<int>(size.x * factor);
-        size.y = static_cast<int>(size.y * factor);
-        img.Rescale(size.x, size.y, wxIMAGE_QUALITY_HIGH);
-        imageDisplay->SetBitmap(wxBitmap(img));
-        Layout();
-        Refresh();
+        // Apply cumulative zoom factor to the original size to calculate the new size
+        wxSize originalSize = originalImage.GetSize();
+        wxSize newSize(
+            static_cast<int>(originalSize.x * zoomFactor),
+            static_cast<int>(originalSize.y * zoomFactor)
+        );
+
+        // Avoid zooming to zero or a negative size
+        if (newSize.x > 0 && newSize.y > 0) {
+            // Scale the original image to the new size based on the current zoom factor
+            wxImage scaledImage = originalImage.Scale(newSize.x, newSize.y, wxIMAGE_QUALITY_HIGH);
+
+            // Update the display with the new bitmap
+            imageDisplay->SetBitmap(wxBitmap(scaledImage));
+            Layout();
+            Refresh();
+        }
     }
 }
 
@@ -103,6 +127,7 @@ void MainFrame::ImportImage() {
         ImportGifImage(path);
     }
     else {
+        originalImage = image;
         UpdateImageDisplay(image);
     }
 }
