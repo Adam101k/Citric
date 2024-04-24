@@ -13,10 +13,17 @@ public:
     Manager(); // Constructor
     void ShowMainFrame(); // Show the main window
     void ImportImage(); // Import image to the workspace
+    void GrayscaleImage();
     MainFrame* mainFrame; // Pointer to the main window
 
 private:
 
+};
+
+// Unique IDs for menu actions
+enum {
+    ID_IMPORT_IMAGE = wxID_HIGHEST + 1,
+    ID_APPLY_GRAYSCALE
 };
 
 // MainFrame class declaration
@@ -30,6 +37,10 @@ public:
     void UpdateImageDisplay(const wxImage& image); // Update the displayed image
     void ClearPreviousDisplay(); // Helper method to clear any existing displays
 
+    // Visual Effects
+    void OnMenuApplyGrayscale(wxCommandEvent& event);
+    void GrayscaleImage();
+
 private:
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
     wxAnimationCtrl* animationCtrl; // Control for displaying animated GIFs
@@ -42,27 +53,24 @@ private:
 };
 
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
-EVT_MENU(wxID_OPEN, MainFrame::OnMenuImportImage)
+EVT_MENU(ID_IMPORT_IMAGE, MainFrame::OnMenuImportImage)
+EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
 EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
 
-// MainFrame class implementation
 MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
     : wxFrame(nullptr, wxID_ANY, title, pos, size), imageDisplay(nullptr), animationCtrl(nullptr) {
     wxMenu* menuFile = new wxMenu;
-    menuFile->Append(wxID_OPEN, "&Import Image...\tCtrl-I");
+    menuFile->Append(ID_IMPORT_IMAGE, "&Import Image...\tCtrl-I", "Import an image file");
+    menuFile->Append(ID_APPLY_GRAYSCALE, "&Apply Grayscale to Image...\tCtrl-G", "Convert the current image to grayscale");
 
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
     SetMenuBar(menuBar);
 
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-    sizer->AddStretchSpacer(1); // Add a spacer that expands
-
     imageDisplay = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
-    sizer->Add(imageDisplay, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5);
-
-    sizer->AddStretchSpacer(1); // Add another spacer that expands
+    sizer->Add(imageDisplay, 1, wxEXPAND | wxALL, 5);
     SetSizer(sizer);
 
     Centre();
@@ -70,6 +78,10 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 
 void MainFrame::OnMenuImportImage(wxCommandEvent& event) {
     ImportImage();
+}
+
+void MainFrame::OnMenuApplyGrayscale(wxCommandEvent& event) {
+    GrayscaleImage();
 }
 
 void MainFrame::OnMouseWheel(wxMouseEvent& event) {
@@ -180,7 +192,16 @@ void MainFrame::ClearPreviousDisplay() {
     }
 }
 
-// Manager class implementation
+void MainFrame::GrayscaleImage() {
+    if (!originalImage.IsOk()) {
+        wxLogError("No Valid Image In Workplace.");
+        return;
+    }
+    wxImage grayImage = originalImage.ConvertToGreyscale();
+    UpdateImageDisplay(grayImage);
+}
+
+// Manager Class Decleration
 Manager::Manager() {
     int screenWidth, screenHeight;
     wxDisplaySize(&screenWidth, &screenHeight);
@@ -191,15 +212,22 @@ Manager::Manager() {
     mainFrame = new MainFrame("Image Editor", wxDefaultPosition, wxSize(windowWidth, windowHeight));
 }
 
+// Show the main window
 void Manager::ShowMainFrame() {
     mainFrame->Show(true);
 }
 
+// Import image to the workspace
 void Manager::ImportImage() {
     mainFrame->ImportImage();
 }
 
-// App class implementation
+// Apply grayscale effect
+void Manager::GrayscaleImage() {
+    mainFrame->GrayscaleImage();  // No parameter is needed; it directly uses the original image within MainFrame
+}
+
+// wxWidgets application entry point
 class App : public wxApp {
 public:
     bool OnInit() override {
