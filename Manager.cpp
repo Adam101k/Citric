@@ -14,6 +14,7 @@ public:
     void ShowMainFrame(); // Show the main window
     void ImportImage(); // Import image to the workspace
     void GrayscaleImage();
+    void BlurImage();
     MainFrame* mainFrame; // Pointer to the main window
 
 private:
@@ -23,7 +24,8 @@ private:
 // Unique IDs for menu actions
 enum {
     ID_IMPORT_IMAGE = wxID_HIGHEST + 1,
-    ID_APPLY_GRAYSCALE
+    ID_APPLY_GRAYSCALE,
+    ID_APPLY_BLUR
 };
 
 // MainFrame class declaration
@@ -40,6 +42,8 @@ public:
     // Visual Effects
     void OnMenuApplyGrayscale(wxCommandEvent& event);
     void GrayscaleImage();
+    void OnMenuApplyBlur(wxCommandEvent& event);
+    void BlurImage();
 
 private:
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
@@ -55,6 +59,7 @@ private:
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
 EVT_MENU(ID_IMPORT_IMAGE, MainFrame::OnMenuImportImage)
 EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
+EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
 EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
 
@@ -62,10 +67,16 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     : wxFrame(nullptr, wxID_ANY, title, pos, size), imageDisplay(nullptr), animationCtrl(nullptr) {
     wxMenu* menuFile = new wxMenu;
     menuFile->Append(ID_IMPORT_IMAGE, "&Import Image...\tCtrl-I", "Import an image file");
-    menuFile->Append(ID_APPLY_GRAYSCALE, "&Apply Grayscale to Image...\tCtrl-G", "Convert the current image to grayscale");
+    
+
+    wxMenu* filters = new wxMenu;
+    filters->Append(ID_APPLY_GRAYSCALE, "&Apply Grayscale to Image...\tCtrl-G", "Convert the current image to grayscale");
+    filters->Append(ID_APPLY_BLUR, "&Apply Blur to Image...\tCtrl-B", "Blur the current image");
 
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
+    menuBar->Append(filters, "&Image Filters");
+
     SetMenuBar(menuBar);
 
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
@@ -82,6 +93,10 @@ void MainFrame::OnMenuImportImage(wxCommandEvent& event) {
 
 void MainFrame::OnMenuApplyGrayscale(wxCommandEvent& event) {
     GrayscaleImage();
+}
+
+void MainFrame::OnMenuApplyBlur(wxCommandEvent& event) {
+    BlurImage();
 }
 
 void MainFrame::OnMouseWheel(wxMouseEvent& event) {
@@ -201,6 +216,15 @@ void MainFrame::GrayscaleImage() {
     UpdateImageDisplay(grayImage);
 }
 
+void MainFrame::BlurImage() {
+    if (!originalImage.IsOk()) {
+        wxLogError("No Valid Image In Workplace.");
+        return;
+    }
+    wxImage blurImage = originalImage.Blur(10);
+    UpdateImageDisplay(blurImage);
+}
+
 // Manager Class Decleration
 Manager::Manager() {
     int screenWidth, screenHeight;
@@ -225,6 +249,11 @@ void Manager::ImportImage() {
 // Apply grayscale effect
 void Manager::GrayscaleImage() {
     mainFrame->GrayscaleImage();  // No parameter is needed; it directly uses the original image within MainFrame
+}
+
+// Apply blur effect
+void Manager::BlurImage() {
+    mainFrame->BlurImage();
 }
 
 // wxWidgets application entry point
