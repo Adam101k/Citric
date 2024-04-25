@@ -13,6 +13,7 @@ public:
     Manager(); // Constructor
     void ShowMainFrame(); // Show the main window
     void ImportImage(); // Import image to the workspace
+    void ClearAllEffects(); // Helper Method to clear effects while keeping the original image on display
     void GrayscaleImage();
     void BlurImage();
     MainFrame* mainFrame; // Pointer to the main window
@@ -25,7 +26,8 @@ private:
 enum {
     ID_IMPORT_IMAGE = wxID_HIGHEST + 1,
     ID_APPLY_GRAYSCALE,
-    ID_APPLY_BLUR
+    ID_APPLY_BLUR,
+    ID_CLEAR_IMAGES
 };
 
 // MainFrame class declaration
@@ -38,8 +40,11 @@ public:
     void ImportGifImage(const wxString& path);  // New method for GIFs
     void UpdateImageDisplay(const wxImage& image); // Update the displayed image
     void ClearPreviousDisplay(); // Helper method to clear any existing displays
+    
 
     // Visual Effects
+    void OnMenuClearEffects(wxCommandEvent& event);
+    void ClearAllEffects(); // Helper Method to clear effects while keeping the original image on display
     void OnMenuApplyGrayscale(wxCommandEvent& event);
     void GrayscaleImage();
     void OnMenuApplyBlur(wxCommandEvent& event);
@@ -51,6 +56,7 @@ private:
 
     // Stuff for zooming in and out
     wxImage originalImage;
+    wxImage currentImage;  // This image will reflect the current state including effects
     double zoomFactor = 1.0;  // Start with no zoom
 
     wxDECLARE_EVENT_TABLE();
@@ -58,6 +64,7 @@ private:
 
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
 EVT_MENU(ID_IMPORT_IMAGE, MainFrame::OnMenuImportImage)
+EVT_MENU(ID_CLEAR_IMAGES, MainFrame::OnMenuClearEffects)
 EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
 EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
 EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
@@ -70,6 +77,7 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     
 
     wxMenu* filters = new wxMenu;
+    filters->Append(ID_CLEAR_IMAGES, "&Clear All Visual Effects...\tCtrl-C", "Clear all effects from current image");
     filters->Append(ID_APPLY_GRAYSCALE, "&Apply Grayscale to Image...\tCtrl-G", "Convert the current image to grayscale");
     filters->Append(ID_APPLY_BLUR, "&Apply Blur to Image...\tCtrl-B", "Blur the current image");
 
@@ -99,14 +107,17 @@ void MainFrame::OnMenuApplyBlur(wxCommandEvent& event) {
     BlurImage();
 }
 
+void MainFrame::OnMenuClearEffects(wxCommandEvent& event) {
+    ClearAllEffects();
+}
+
 void MainFrame::OnMouseWheel(wxMouseEvent& event) {
-    if (!originalImage.IsOk()) {
-        // Ensure the originalImage is loaded when the image is first initialized
-        originalImage = imageDisplay->GetBitmap().ConvertToImage();
+    if (!currentImage.IsOk()) {
+        // Make sure there's a valid image loaded
+        currentImage = imageDisplay->GetBitmap().ConvertToImage();
     }
 
     int rotation = event.GetWheelRotation();
-    // Adjust zoom factor: increase or decrease based on the wheel rotation
     if (rotation > 0) {
         zoomFactor *= 1.1;  // Zoom in
     }
@@ -114,26 +125,18 @@ void MainFrame::OnMouseWheel(wxMouseEvent& event) {
         zoomFactor *= 0.9;  // Zoom out
     }
 
-    if (imageDisplay && imageDisplay->GetBitmap().IsOk()) {
-        // Apply cumulative zoom factor to the original size to calculate the new size
-        wxSize originalSize = originalImage.GetSize();
-        wxSize newSize(
-            static_cast<int>(originalSize.x * zoomFactor),
-            static_cast<int>(originalSize.y * zoomFactor)
-        );
-
-        // Avoid zooming to zero or a negative size
+    if (imageDisplay && currentImage.IsOk()) {
+        wxSize originalSize = currentImage.GetSize();
+        wxSize newSize(static_cast<int>(originalSize.x * zoomFactor), static_cast<int>(originalSize.y * zoomFactor));
         if (newSize.x > 0 && newSize.y > 0) {
-            // Scale the original image to the new size based on the current zoom factor
-            wxImage scaledImage = originalImage.Scale(newSize.x, newSize.y, wxIMAGE_QUALITY_HIGH);
-
-            // Update the display with the new bitmap
+            wxImage scaledImage = currentImage.Scale(newSize.x, newSize.y, wxIMAGE_QUALITY_HIGH);
             imageDisplay->SetBitmap(wxBitmap(scaledImage));
             Layout();
             Refresh();
         }
     }
 }
+
 
 void MainFrame::ImportImage() {
     wxFileDialog openFileDialog(this, _("Open Image file"), "", "",
@@ -184,15 +187,17 @@ void MainFrame::ImportGifImage(const wxString& path) {
 }
 
 void MainFrame::UpdateImageDisplay(const wxImage& image) {
+    currentImage = image;  // Update the current image with the new one
     if (!imageDisplay)
         imageDisplay = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
-    wxImage scaledImage = image.Scale(image.GetWidth(), image.GetHeight(), wxIMAGE_QUALITY_HIGH);
+    wxImage scaledImage = currentImage.Scale(currentImage.GetWidth(), currentImage.GetHeight(), wxIMAGE_QUALITY_HIGH);
     imageDisplay->SetBitmap(wxBitmap(scaledImage));
     imageDisplay->Show();
     if (animationCtrl) animationCtrl->Hide();
     Layout();
     Refresh();
 }
+
 
 void MainFrame::ClearPreviousDisplay() {
     if (imageDisplay) {
@@ -205,6 +210,14 @@ void MainFrame::ClearPreviousDisplay() {
         delete animationCtrl;
         animationCtrl = nullptr;
     }
+}
+
+void MainFrame::ClearAllEffects() {
+    if (!originalImage.IsOk()) {
+        wxLogError("No Valid Image In Workplace.");
+        return;
+    }
+    UpdateImageDisplay(originalImage);
 }
 
 void MainFrame::GrayscaleImage() {
