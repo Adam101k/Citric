@@ -194,6 +194,11 @@ void MainFrame::OnExportImage(wxCommandEvent& event) {
     wxFileDialog saveDialog(this, "Save Image File", "", "", "Image files(*.bmp; *.png; *.jpg; *.gif) | *.bmp; *.png; *.jpg *.gif;",
         wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
+    if (!originalImage.IsOk()) {
+        wxLogError("No Avalible Image to Save");
+        return;
+    }
+
     if (saveDialog.ShowModal() == wxID_CANCEL) {
         return;
     }
