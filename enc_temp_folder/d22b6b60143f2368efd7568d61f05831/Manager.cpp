@@ -183,32 +183,6 @@ void MainFrame::ApplyGifFilter(std::function<wxImage(wxImage&)> filterFunc) {
 }
 
 
-void MainFrame::ImportGifImage(const wxString& path) {
-    wxAnimation animation;
-    if (!animation.LoadFile(path)) {
-        wxLogError("Failed to load GIF file.");
-        return;
-    }
-
-    ClearPreviousDisplay(); // Ensure previous displays are cleared
-
-    if (animation.GetFrameCount() > 1) {
-        if (!animationCtrl)
-            animationCtrl = new wxAnimationCtrl(this, wxID_ANY);
-        
-        animationCtrl->SetAnimation(animation);
-        animationCtrl->Play();
-        animationCtrl->Show();
-        GetSizer()->Insert(1, animationCtrl, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5); // Center the control
-        currentImage = animation.GetFrame(0); // Set the first frame as current image
-    }
-    else {
-        wxImage frameImage = animation.GetFrame(0);
-        UpdateImageDisplay(frameImage);
-    }
-    Layout();
-    Refresh();
-}
 
 void MainFrame::OnMouseWheel(wxMouseEvent& event) {
     if (!currentImage.IsOk()) {
