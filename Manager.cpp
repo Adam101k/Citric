@@ -151,19 +151,6 @@ void MainFrame::OnMenuClearEffects(wxCommandEvent& event) {
     ClearAllEffects();
 }
 
-void MainFrame::OnAnimationTimer(wxTimerEvent& event) {
-    if (currentFrameIndex < gifFrames.size()) {
-        UpdateImageDisplay(gifFrames[currentFrameIndex].ConvertToImage());
-        currentFrameIndex++;
-    }
-    else {
-        animationTimer->Stop(); // Stop the timer when the last frame is reached
-        currentFrameIndex = 0;  // Reset the index if you want to loop the animation
-    }
-}
-
-
-
 void MainFrame::ImportGifImage(const wxString& path) {
     wxAnimation animation;
     if (!animation.LoadFile(path)) {
@@ -311,12 +298,73 @@ void MainFrame::BlurImage() {
 }
 
 void MainFrame::GrayscaleGif() {
+    if (!animationCtrl || animationCtrl->GetAnimation().GetFrameCount() == 0) {
+        wxLogError("No GIF is currently loaded.");
+        return;
+    }
 
+    wxAnimation animation = animationCtrl->GetAnimation();
+    size_t frameCount = animation.GetFrameCount();
+    gifFrames.clear(); // Clear existing frames
+
+    for (size_t i = 0; i < frameCount; ++i) {
+        wxImage frameImage = animation.GetFrame(i);
+        wxImage grayImage = frameImage.ConvertToGreyscale();
+        gifFrames.push_back(wxBitmap(grayImage)); // Store the processed frame
+    }
+
+    // Stop and hide the animation control
+    animationCtrl->Stop();
+    animationCtrl->Hide();
+
+    // Reset the current frame index and restart the timer
+    currentFrameIndex = 0;
+    animationTimer->Start(100); // Adjust frame delay as needed
 }
 
 void MainFrame::BlurGif() {
+    if (!animationCtrl || animationCtrl->GetAnimation().GetFrameCount() == 0) {
+        wxLogError("No GIF is currently loaded.");
+        return;
+    }
 
+    wxAnimation animation = animationCtrl->GetAnimation();
+    size_t frameCount = animation.GetFrameCount();
+    gifFrames.clear(); // Clear existing frames
+
+    for (size_t i = 0; i < frameCount; ++i) {
+        wxImage frameImage = animation.GetFrame(i);
+        wxImage blurImage = frameImage.Blur(10); // Blur amount can be adjusted
+        gifFrames.push_back(wxBitmap(blurImage)); // Store the processed frame
+    }
+
+    // Stop and hide the animation control
+    animationCtrl->Stop();
+    animationCtrl->Hide();
+
+    // Reset the current frame index and restart the timer
+    currentFrameIndex = 0;
+    animationTimer->Start(100); // Adjust frame delay as needed
 }
+
+void MainFrame::OnAnimationTimer(wxTimerEvent& event) {
+    if (currentFrameIndex < gifFrames.size()) {
+        if (!imageDisplay)
+            imageDisplay = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
+
+        imageDisplay->SetBitmap(gifFrames[currentFrameIndex]);
+        imageDisplay->Show();
+        currentFrameIndex++;
+    }
+    else {
+        animationTimer->Stop(); // Stop the timer when the last frame is reached
+        currentFrameIndex = 0; // Reset the index if you want to loop the animation
+    }
+    Layout();
+    Refresh();
+}
+
+
 
 // Manager Class Decleration
 Manager::Manager() {
