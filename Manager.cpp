@@ -16,6 +16,8 @@ public:
     void ClearAllEffects(); // Helper Method to clear effects while keeping the original image on display
     void GrayscaleImage();
     void BlurImage();
+    void GrayscaleGif();
+    void BlurGif();
     MainFrame* mainFrame; // Pointer to the main window
 
 private:
@@ -56,7 +58,8 @@ public:
     // Gif Visual Effects
     void OnMenuApplyGrayscaleGif(wxCommandEvent& event);
     void OnMenuApplyBlurGif(wxCommandEvent& event);
-    void ApplyGifFilter(std::function<wxImage(wxImage&)> filterFunc);
+    void GrayscaleGif();
+    void BlurGif();
     void OnAnimationTimer(wxTimerEvent& event);
 
 private:
@@ -137,11 +140,11 @@ void MainFrame::OnMenuApplyBlur(wxCommandEvent& event) {
 }
 
 void MainFrame::OnMenuApplyGrayscaleGif(wxCommandEvent& event) {
-    ApplyGifFilter([](wxImage& img) { return img.ConvertToGreyscale(); });
+    GrayscaleGif();
 }
 
 void MainFrame::OnMenuApplyBlurGif(wxCommandEvent& event) {
-    ApplyGifFilter([](wxImage& img) { return img.Blur(10); });
+    BlurGif();
 }
 
 void MainFrame::OnMenuClearEffects(wxCommandEvent& event) {
@@ -159,28 +162,6 @@ void MainFrame::OnAnimationTimer(wxTimerEvent& event) {
     }
 }
 
-// General method to apply a filter to each frame of the GIF
-void MainFrame::ApplyGifFilter(std::function<wxImage(wxImage&)> filterFunc) {
-    if (animationCtrl && animationCtrl->IsPlaying()) {
-        wxAnimation animation = animationCtrl->GetAnimation();
-        animationCtrl->Stop();
-        gifFrames.clear(); // Clear any previous frames
-
-        for (size_t i = 0; i < animation.GetFrameCount(); ++i) {
-            wxImage frameImage = animation.GetFrame(i);
-            frameImage = filterFunc(frameImage);
-            gifFrames.push_back(wxBitmap(frameImage));
-        }
-
-        if (!gifFrames.empty()) {
-            currentFrameIndex = 0;
-            animationTimer->Start(100); // Start the timer, change the interval as needed
-        }
-    }
-    else {
-        wxLogError("No active GIF animation to apply filter.");
-    }
-}
 
 
 void MainFrame::ImportGifImage(const wxString& path) {
@@ -261,33 +242,6 @@ void MainFrame::ImportImage() {
     }
 }
 
-void MainFrame::ImportGifImage(const wxString& path) {
-    wxAnimation animation;
-    if (!animation.LoadFile(path)) {
-        wxLogError("Failed to load GIF file.");
-        return;
-    }
-
-    ClearPreviousDisplay(); // Ensure previous displays are cleared
-
-    if (animation.GetFrameCount() > 1) {
-        if (!animationCtrl)
-            animationCtrl = new wxAnimationCtrl(this, wxID_ANY);
-
-        animationCtrl->SetAnimation(animation);
-        animationCtrl->Play();
-        animationCtrl->Show();
-        GetSizer()->Insert(1, animationCtrl, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5); // Center the control
-        currentImage = animation.GetFrame(0); // Set the first frame as current image
-    }
-    else {
-        wxImage frameImage = animation.GetFrame(0);
-        UpdateImageDisplay(frameImage);
-    }
-    Layout();
-    Refresh();
-}
-
 void MainFrame::OnExportImage(wxCommandEvent& event) {
 
     wxFileDialog saveDialog(this, "Save Image File", "", "", "Image files(*.bmp; *.png; *.jpg; *.gif) | *.bmp; *.png; *.jpg *.gif;",
@@ -354,6 +308,14 @@ void MainFrame::BlurImage() {
     }
     wxImage blurImage = originalImage.Blur(10);
     UpdateImageDisplay(blurImage);
+}
+
+void MainFrame::GrayscaleGif() {
+
+}
+
+void MainFrame::BlurGif() {
+
 }
 
 // Manager Class Decleration
