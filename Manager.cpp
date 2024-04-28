@@ -16,6 +16,9 @@ public:
     void ClearAllEffects(); // Helper Method to clear effects while keeping the original image on display
     void GrayscaleImage();
     void BlurImage();
+    void DimImage();
+    void LightenImage();
+    void RotateImage();
     MainFrame* mainFrame; // Pointer to the main window
 
 private:
@@ -27,7 +30,10 @@ enum {
     ID_IMPORT_IMAGE = wxID_HIGHEST + 1,
     ID_APPLY_GRAYSCALE,
     ID_APPLY_BLUR,
-    ID_CLEAR_IMAGES
+    ID_CLEAR_IMAGES,
+    ID_APPLY_DIM,
+    ID_APPLY_LIGHTEN,
+    ID_APPLY_ROTATE
 };
 
 // MainFrame class declaration
@@ -50,6 +56,15 @@ public:
     void GrayscaleImage();
     void OnMenuApplyBlur(wxCommandEvent& event);
     void BlurImage();
+    void OnMenuApplyDim(wxCommandEvent& event);
+    void DimImage();
+    void OnMenuApplyLighten(wxCommandEvent& event);
+    void LightenImage();
+
+
+    //Tools
+    void OnMenuApplyRotate(wxCommandEvent& event);
+    void RotateImage();
 
 private:
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
@@ -60,6 +75,7 @@ private:
     wxImage currentImage;  // This image will reflect the current state including effects
     double zoomFactor = 1.0;  // Start with no zoom
 
+    int rotations = 0;//Rotation count for rotate the image multiple times
     wxDECLARE_EVENT_TABLE();
 };
 
@@ -69,6 +85,9 @@ EVT_MENU(wxID_SAVE, MainFrame::OnExportImage)
 EVT_MENU(ID_CLEAR_IMAGES, MainFrame::OnMenuClearEffects)
 EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
 EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
+EVT_MENU(ID_APPLY_DIM,MainFrame::OnMenuApplyDim)
+EVT_MENU(ID_APPLY_LIGHTEN,MainFrame::OnMenuApplyLighten)
+EVT_MENU(ID_APPLY_ROTATE,MainFrame::OnMenuApplyRotate)
 EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
 
@@ -83,10 +102,16 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     filters->Append(ID_CLEAR_IMAGES, "&Clear All Visual Effects...\tCtrl-C", "Clear all effects from current image");
     filters->Append(ID_APPLY_GRAYSCALE, "&Apply Grayscale to Image...\tCtrl-G", "Convert the current image to grayscale");
     filters->Append(ID_APPLY_BLUR, "&Apply Blur to Image...\tCtrl-B", "Blur the current image");
+    filters->Append(ID_APPLY_DIM, "&Apply Dim to image...\tCtrl-D", "Dim the current image");
+    filters->Append(ID_APPLY_LIGHTEN, "&Apply Lighten to image...\tCtrl-L", "Lighten the current image");
+
+    wxMenu* tools = new wxMenu;
+    tools->Append(ID_APPLY_ROTATE, "&Rotate the image...\tCtrl-R", "Rotate the current image");
 
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
     menuBar->Append(filters, "&Image Filters");
+    menuBar->Append(tools, "&Tools");
 
     SetMenuBar(menuBar);
 
@@ -110,8 +135,20 @@ void MainFrame::OnMenuApplyBlur(wxCommandEvent& event) {
     BlurImage();
 }
 
+void MainFrame::OnMenuApplyDim(wxCommandEvent& event) {
+    DimImage();
+}
+
+void MainFrame::OnMenuApplyLighten(wxCommandEvent& event) {
+    LightenImage();
+}
+
 void MainFrame::OnMenuClearEffects(wxCommandEvent& event) {
     ClearAllEffects();
+}
+
+void MainFrame::OnMenuApplyRotate(wxCommandEvent& event) {
+    RotateImage();
 }
 
 void MainFrame::OnMouseWheel(wxMouseEvent& event) {
@@ -262,6 +299,33 @@ void MainFrame::BlurImage() {
     UpdateImageDisplay(blurImage);
 }
 
+void MainFrame::DimImage() {
+    if (!originalImage.IsOk()) {
+        wxLogError("No Vaid Image In Workspace.");
+        return;
+    }
+    wxImage dimImage = originalImage.ConvertToDisabled(10);
+    UpdateImageDisplay(dimImage);
+}
+
+void MainFrame::LightenImage() {
+    if (!originalImage.IsOk()) {
+        wxLogError("No Valid Image In Workspace.");
+        return;
+    }
+    wxImage lightenImage = originalImage.ChangeLightness(110);
+    UpdateImageDisplay(lightenImage);
+}
+
+void MainFrame::RotateImage() {
+    if (!currentImage.IsOk()) {
+        wxLogError("No Valid Image In Workspace.");
+        return;
+    }
+    rotations++;
+    wxImage rotateImage = currentImage.Rotate90(true);
+    UpdateImageDisplay(rotateImage);
+}
 // Manager Class Decleration
 Manager::Manager() {
     int screenWidth, screenHeight;
@@ -291,6 +355,21 @@ void Manager::GrayscaleImage() {
 // Apply blur effect
 void Manager::BlurImage() {
     mainFrame->BlurImage();
+}
+
+//Apply Dim effect
+void Manager::DimImage() {
+    mainFrame->DimImage();
+}
+
+//Apply Lighten effect
+void Manager::LightenImage() {
+    mainFrame->LightenImage();
+}
+
+//Apply Rotation
+void Manager::RotateImage() {
+    mainFrame->RotateImage();
 }
 
 // wxWidgets application entry point
