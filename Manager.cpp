@@ -18,6 +18,7 @@ public:
     void BlurImage();
     void DimImage();
     void LightenImage();
+    void RotateImage();
     MainFrame* mainFrame; // Pointer to the main window
 
 private:
@@ -31,7 +32,8 @@ enum {
     ID_APPLY_BLUR,
     ID_CLEAR_IMAGES,
     ID_APPLY_DIM,
-    ID_APPLY_LIGHTEN
+    ID_APPLY_LIGHTEN,
+    ID_APPLY_ROTATE
 };
 
 // MainFrame class declaration
@@ -58,6 +60,11 @@ public:
     void OnMenuApplyLighten(wxCommandEvent& event);
     void LightenImage();
 
+
+    //Tools
+    void OnMenuApplyRotate(wxCommandEvent& event);
+    void RotateImage();
+
 private:
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
     wxAnimationCtrl* animationCtrl; // Control for displaying animated GIFs
@@ -67,6 +74,7 @@ private:
     wxImage currentImage;  // This image will reflect the current state including effects
     double zoomFactor = 1.0;  // Start with no zoom
 
+    int rotations = 0;//Rotation count for rotate the image multiple times
     wxDECLARE_EVENT_TABLE();
 };
 
@@ -77,6 +85,7 @@ EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
 EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
 EVT_MENU(ID_APPLY_DIM,MainFrame::OnMenuApplyDim)
 EVT_MENU(ID_APPLY_LIGHTEN,MainFrame::OnMenuApplyLighten)
+EVT_MENU(ID_APPLY_ROTATE,MainFrame::OnMenuApplyRotate)
 EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
 
@@ -93,9 +102,13 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     filters->Append(ID_APPLY_DIM, "&Apply Dim to image...\tCtrl-D", "Dim the current image");
     filters->Append(ID_APPLY_LIGHTEN, "&Apply Lighten to image...\tCtrl-L", "Lighten the current image");
 
+    wxMenu* tools = new wxMenu;
+    tools->Append(ID_APPLY_ROTATE, "&Rotate the image...\tCtrl-R", "Rotate the current image");
+
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
     menuBar->Append(filters, "&Image Filters");
+    menuBar->Append(tools, "&Tools");
 
     SetMenuBar(menuBar);
 
@@ -129,6 +142,10 @@ void MainFrame::OnMenuApplyLighten(wxCommandEvent& event) {
 
 void MainFrame::OnMenuClearEffects(wxCommandEvent& event) {
     ClearAllEffects();
+}
+
+void MainFrame::OnMenuApplyRotate(wxCommandEvent& event) {
+    RotateImage();
 }
 
 void MainFrame::OnMouseWheel(wxMouseEvent& event) {
@@ -276,6 +293,15 @@ void MainFrame::LightenImage() {
     UpdateImageDisplay(lightenImage);
 }
 
+void MainFrame::RotateImage() {
+    if (!currentImage.IsOk()) {
+        wxLogError("No Valid Image In Workspace.");
+        return;
+    }
+    rotations++;
+    wxImage rotateImage = currentImage.Rotate90(true);
+    UpdateImageDisplay(rotateImage);
+}
 // Manager Class Decleration
 Manager::Manager() {
     int screenWidth, screenHeight;
@@ -315,6 +341,11 @@ void Manager::DimImage() {
 //Apply Lighten effect
 void Manager::LightenImage() {
     mainFrame->LightenImage();
+}
+
+//Apply Rotation
+void Manager::RotateImage() {
+    mainFrame->RotateImage();
 }
 
 // wxWidgets application entry point
