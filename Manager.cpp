@@ -43,6 +43,7 @@ public:
     void OnMenuImportImage(wxCommandEvent& event); // Event handler for the menu to import an image
     void OnMouseWheel(wxMouseEvent& event); // Event handler for mouse wheel
     void ImportImage(); // Method to handle importing an image without an event
+    void OnExportImage(wxCommandEvent& event); // Handels Image Exporting 
     void ImportGifImage(const wxString& path);  // New method for GIFs
     void UpdateImageDisplay(const wxImage& image); // Update the displayed image
     void ClearPreviousDisplay(); // Helper method to clear any existing displays
@@ -80,6 +81,7 @@ private:
 
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
 EVT_MENU(ID_IMPORT_IMAGE, MainFrame::OnMenuImportImage)
+EVT_MENU(wxID_SAVE, MainFrame::OnExportImage)
 EVT_MENU(ID_CLEAR_IMAGES, MainFrame::OnMenuClearEffects)
 EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
 EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
@@ -93,7 +95,8 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     : wxFrame(nullptr, wxID_ANY, title, pos, size), imageDisplay(nullptr), animationCtrl(nullptr) {
     wxMenu* menuFile = new wxMenu;
     menuFile->Append(ID_IMPORT_IMAGE, "&Import Image...\tCtrl-I", "Import an image file");
-    
+    menuFile->Append(wxID_SAVE, "&Save Image...\tCtrl-S", "Save your Image"); 
+
 
     wxMenu* filters = new wxMenu;
     filters->Append(ID_CLEAR_IMAGES, "&Clear All Visual Effects...\tCtrl-C", "Clear all effects from current image");
@@ -221,6 +224,27 @@ void MainFrame::ImportGifImage(const wxString& path) {
     }
     Layout();
     Refresh();
+}
+
+void MainFrame::OnExportImage(wxCommandEvent& event) {
+
+    wxFileDialog saveDialog(this, "Save Image File", "", "", "Image files(*.bmp; *.png; *.jpg; *.gif) | *.bmp; *.png; *.jpg *.gif;",
+        wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+    if (!originalImage.IsOk()) {
+        wxLogError("No Avalible Image to Save");
+        return;
+    }
+
+    if (saveDialog.ShowModal() == wxID_CANCEL) {
+        return;
+    }
+
+    wxString filePath = saveDialog.GetPath();
+
+    wxBitmap bitmap = imageDisplay->GetBitmap();
+    bitmap.ConvertToImage().SaveFile(filePath);
+
 }
 
 void MainFrame::UpdateImageDisplay(const wxImage& image) {
