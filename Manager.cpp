@@ -283,6 +283,10 @@ void Manager::ImportImage() {
     mainFrame->ImportImage();
 }
 
+void Manager::ImportImage() {
+    mainFrame->OnExportImage
+}
+
 // Apply grayscale effect
 void Manager::GrayscaleImage() {
     mainFrame->GrayscaleImage();  // No parameter is needed; it directly uses the original image within MainFrame
