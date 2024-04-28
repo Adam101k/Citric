@@ -11,6 +11,7 @@ HOW TO USE
 		This creates a json file on your computer that will remain after the program has stoped 
 		exexuteing then later you can use .Load("Name of project here") to copy that data into 
 		any instance of the project data class
+			
 			ProjectData myProject = ProjectData("My Project")
 			myProject.SetGreyScale(true);
 			myProject.Save();
@@ -50,6 +51,7 @@ public:
 
 	void SetBlurred(bool on) { myJson_["Blurred"] = on; };
 
+	void DeleteProject(std::string name);
 
 	//Saves the data to a given file location
 	bool Save();

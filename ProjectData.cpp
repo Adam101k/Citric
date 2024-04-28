@@ -70,3 +70,8 @@ std::vector<std::string> ProjectData::GetAllProjectNames()
     return names;
 }
 
+void DeleteProject(std::string name) {
+
+
+}
+
