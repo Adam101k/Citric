@@ -17,6 +17,7 @@ public:
     void GrayscaleImage();
     void BlurImage();
     void DimImage();
+    void LightenImage();
     MainFrame* mainFrame; // Pointer to the main window
 
 private:
@@ -29,7 +30,8 @@ enum {
     ID_APPLY_GRAYSCALE,
     ID_APPLY_BLUR,
     ID_CLEAR_IMAGES,
-    ID_APPLY_DIM
+    ID_APPLY_DIM,
+    ID_APPLY_LIGHTEN
 };
 
 // MainFrame class declaration
@@ -53,6 +55,8 @@ public:
     void BlurImage();
     void OnMenuApplyDim(wxCommandEvent& event);
     void DimImage();
+    void OnMenuApplyLighten(wxCommandEvent& event);
+    void LightenImage();
 
 private:
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
@@ -72,6 +76,7 @@ EVT_MENU(ID_CLEAR_IMAGES, MainFrame::OnMenuClearEffects)
 EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
 EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
 EVT_MENU(ID_APPLY_DIM,MainFrame::OnMenuApplyDim)
+EVT_MENU(ID_APPLY_LIGHTEN,MainFrame::OnMenuApplyLighten)
 EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
 
@@ -86,6 +91,7 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     filters->Append(ID_APPLY_GRAYSCALE, "&Apply Grayscale to Image...\tCtrl-G", "Convert the current image to grayscale");
     filters->Append(ID_APPLY_BLUR, "&Apply Blur to Image...\tCtrl-B", "Blur the current image");
     filters->Append(ID_APPLY_DIM, "&Apply Dim to image...\tCtrl-D", "Dim the current image");
+    filters->Append(ID_APPLY_LIGHTEN, "&Apply Lighten to image...\tCtrl-L", "Lighten the current image");
 
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
@@ -116,6 +122,11 @@ void MainFrame::OnMenuApplyBlur(wxCommandEvent& event) {
 void MainFrame::OnMenuApplyDim(wxCommandEvent& event) {
     DimImage();
 }
+
+void MainFrame::OnMenuApplyLighten(wxCommandEvent& event) {
+    LightenImage();
+}
+
 void MainFrame::OnMenuClearEffects(wxCommandEvent& event) {
     ClearAllEffects();
 }
@@ -255,6 +266,16 @@ void MainFrame::DimImage() {
     wxImage dimImage = originalImage.ConvertToDisabled(10);
     UpdateImageDisplay(dimImage);
 }
+
+void MainFrame::LightenImage() {
+    if (!originalImage.IsOk()) {
+        wxLogError("No Valid Image In Workspace.");
+        return;
+    }
+    wxImage lightenImage = originalImage.ChangeLightness(110);
+    UpdateImageDisplay(lightenImage);
+}
+
 // Manager Class Decleration
 Manager::Manager() {
     int screenWidth, screenHeight;
@@ -289,6 +310,11 @@ void Manager::BlurImage() {
 //Apply Dim effect
 void Manager::DimImage() {
     mainFrame->DimImage();
+}
+
+//Apply Lighten effect
+void Manager::LightenImage() {
+    mainFrame->LightenImage();
 }
 
 // wxWidgets application entry point
