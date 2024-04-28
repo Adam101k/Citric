@@ -16,6 +16,7 @@ public:
     void ClearAllEffects(); // Helper Method to clear effects while keeping the original image on display
     void GrayscaleImage();
     void BlurImage();
+    void DimImage();
     MainFrame* mainFrame; // Pointer to the main window
 
 private:
@@ -27,7 +28,8 @@ enum {
     ID_IMPORT_IMAGE = wxID_HIGHEST + 1,
     ID_APPLY_GRAYSCALE,
     ID_APPLY_BLUR,
-    ID_CLEAR_IMAGES
+    ID_CLEAR_IMAGES,
+    ID_APPLY_DIM
 };
 
 // MainFrame class declaration
@@ -49,6 +51,8 @@ public:
     void GrayscaleImage();
     void OnMenuApplyBlur(wxCommandEvent& event);
     void BlurImage();
+    void OnMenuApplyDim(wxCommandEvent& event);
+    void DimImage();
 
 private:
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
@@ -67,6 +71,7 @@ EVT_MENU(ID_IMPORT_IMAGE, MainFrame::OnMenuImportImage)
 EVT_MENU(ID_CLEAR_IMAGES, MainFrame::OnMenuClearEffects)
 EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
 EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
+EVT_MENU(ID_APPLY_DIM,MainFrame::OnMenuApplyDim)
 EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
 
@@ -80,6 +85,7 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     filters->Append(ID_CLEAR_IMAGES, "&Clear All Visual Effects...\tCtrl-C", "Clear all effects from current image");
     filters->Append(ID_APPLY_GRAYSCALE, "&Apply Grayscale to Image...\tCtrl-G", "Convert the current image to grayscale");
     filters->Append(ID_APPLY_BLUR, "&Apply Blur to Image...\tCtrl-B", "Blur the current image");
+    filters->Append(ID_APPLY_DIM, "&Apply Dim to image...\tCtrl-D", "Dim the current image");
 
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
@@ -107,6 +113,9 @@ void MainFrame::OnMenuApplyBlur(wxCommandEvent& event) {
     BlurImage();
 }
 
+void MainFrame::OnMenuApplyDim(wxCommandEvent& event) {
+    DimImage();
+}
 void MainFrame::OnMenuClearEffects(wxCommandEvent& event) {
     ClearAllEffects();
 }
@@ -238,6 +247,14 @@ void MainFrame::BlurImage() {
     UpdateImageDisplay(blurImage);
 }
 
+void MainFrame::DimImage() {
+    if (!originalImage.IsOk()) {
+        wxLogError("No Vaid Image In Workspace.");
+        return;
+    }
+    wxImage dimImage = originalImage.ConvertToDisabled(10);
+    UpdateImageDisplay(dimImage);
+}
 // Manager Class Decleration
 Manager::Manager() {
     int screenWidth, screenHeight;
@@ -267,6 +284,11 @@ void Manager::GrayscaleImage() {
 // Apply blur effect
 void Manager::BlurImage() {
     mainFrame->BlurImage();
+}
+
+//Apply Dim effect
+void Manager::DimImage() {
+    mainFrame->DimImage();
 }
 
 // wxWidgets application entry point
