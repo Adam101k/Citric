@@ -27,7 +27,8 @@ enum {
     ID_IMPORT_IMAGE = wxID_HIGHEST + 1,
     ID_APPLY_GRAYSCALE,
     ID_APPLY_BLUR,
-    ID_CLEAR_IMAGES
+    ID_CLEAR_IMAGES,
+    ID_CROP_IMAGE
 };
 
 // MainFrame class declaration
@@ -51,6 +52,10 @@ public:
     void OnMenuApplyBlur(wxCommandEvent& event);
     void BlurImage();
 
+    //Tools 
+    void OnCropImage(wxCommandEvent& event);
+    void CropImage();
+
 private:
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
     wxAnimationCtrl* animationCtrl; // Control for displaying animated GIFs
@@ -69,6 +74,7 @@ EVT_MENU(wxID_SAVE, MainFrame::OnExportImage)
 EVT_MENU(ID_CLEAR_IMAGES, MainFrame::OnMenuClearEffects)
 EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
 EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
+EVT_MENU(ID_CROP_IMAGE, MainFrame::OnCropImage)
 EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
 
@@ -85,7 +91,7 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     filters->Append(ID_APPLY_BLUR, "&Apply Blur to Image...\tCtrl-B", "Blur the current image");
 
     wxMenu* tools = new wxMenu;
-
+    tools->Append(ID_CROP_IMAGE, "&Crop Image");
 
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
@@ -116,6 +122,10 @@ void MainFrame::OnMenuApplyBlur(wxCommandEvent& event) {
 
 void MainFrame::OnMenuClearEffects(wxCommandEvent& event) {
     ClearAllEffects();
+}
+
+void MainFrame::OnCropImage(wxCommandEvent& event) {
+    CropImage();
 }
 
 void MainFrame::OnMouseWheel(wxMouseEvent& event) {
@@ -265,6 +275,32 @@ void MainFrame::BlurImage() {
     wxImage blurImage = originalImage.Blur(10);
     UpdateImageDisplay(blurImage);
 }
+
+//Crops Images
+void MainFrame::CropImage()
+{
+    wxTextEntryDialog dialog(this, "Enter crop dimensions (width,height):", "Custom Crop", "", wxOK | wxCANCEL);
+    if (dialog.ShowModal() == wxID_OK) {
+        wxString userInput = dialog.GetValue();
+        long width, height;
+        if (userInput.BeforeFirst(',').ToLong(&width) && userInput.AfterFirst(',').ToLong(&height)) {
+            // Successfully parsed width and height
+            if (width > 0 && height > 0) {
+                wxRect cropBox(0, 0, width, height);
+                wxImage cropedImage = originalImage.GetSubImage(cropBox);
+                UpdateImageDisplay(cropedImage);
+            }
+            else {
+                wxMessageBox("Invalid dimensions. Please enter positive integers.", "Error", wxOK | wxICON_ERROR);
+            }
+        }
+        else {
+            wxMessageBox("Invalid input format. Please enter dimensions in the format 'width height'.", "Error", wxOK | wxICON_ERROR);
+        }
+    }
+}
+    
+
 
 // Manager Class Decleration
 Manager::Manager() {
