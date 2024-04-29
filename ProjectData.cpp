@@ -2,6 +2,7 @@
 #include <iostream>
 using json = nlohmann::json;
 
+
 bool ProjectData::Save()
 {
 
@@ -9,12 +10,12 @@ bool ProjectData::Save()
     json allData;
     std::ifstream iFileStream(FILELOCATION);
     if (iFileStream.is_open()) {
-        iFileStream >> allData;
+        allData = json::parse(iFileStream);
         iFileStream.close();
     }
 
     //Heres where we will put information once we figure out what needs to be saved 
-    
+
     allData[name_] = myJson_;
 
 
@@ -29,6 +30,7 @@ bool ProjectData::Save()
     {
         return false;
     }
+    return true;
 }
 
 bool ProjectData::Load(const std::string& projectName) {
@@ -39,10 +41,32 @@ bool ProjectData::Load(const std::string& projectName) {
     if (!iFileStream.is_open()) {
         return false;
     }
-    allData.parse(iFileStream);
+    allData = json::parse(iFileStream);
     iFileStream.close();
 
-    //
+
+    if (!allData.contains(projectName)) {
+        std::cout << "ERROR: Project save data not found for given name";
+        return false;
+    }
     myJson_ = allData[projectName];
     this->SetName(projectName);
+    return true;
 }
+
+std::vector<std::string> ProjectData::GetAllProjectNames()
+{
+    std::vector<std::string> names;
+    json allData;
+    std::ifstream iFileStream(FILELOCATION);
+    allData = json::parse(iFileStream);
+
+    iFileStream.close();
+
+    for (auto it = allData.begin(); it != allData.end(); ++it)
+    {
+        names.push_back(it.key());
+    }
+    return names;
+}
+
