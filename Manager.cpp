@@ -16,6 +16,8 @@ public:
     void ClearAllEffects(); // Helper Method to clear effects while keeping the original image on display
     void GrayscaleImage();
     void BlurImage();
+    void GrayscaleGif();
+    void BlurGif();
     void DimImage();
     void LightenImage();
     void PixelateImage();
@@ -32,6 +34,8 @@ enum {
     ID_APPLY_GRAYSCALE,
     ID_APPLY_BLUR,
     ID_CLEAR_IMAGES,
+    ID_APPLY_GRAYSCALE_GIF = wxID_HIGHEST + 100,
+    ID_APPLY_BLUR_GIF,
     ID_APPLY_DIM,
     ID_APPLY_LIGHTEN,
     ID_APPLY_PIXELATE,
@@ -51,7 +55,7 @@ public:
     void ClearPreviousDisplay(); // Helper method to clear any existing displays
     
 
-    // Visual Effects
+    // Image Visual Effects
     void OnMenuClearEffects(wxCommandEvent& event);
     void ClearAllEffects(); // Helper Method to clear effects while keeping the original image on display
     void OnMenuApplyGrayscale(wxCommandEvent& event);
@@ -70,6 +74,13 @@ public:
     void OnMenuApplyRotate(wxCommandEvent& event);
     void RotateImage();
 
+    // Gif Visual Effects
+    void OnMenuApplyGrayscaleGif(wxCommandEvent& event);
+    void OnMenuApplyBlurGif(wxCommandEvent& event);
+    void GrayscaleGif();
+    void BlurGif();
+    void OnAnimationTimer(wxTimerEvent& event);
+
 private:
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
     wxAnimationCtrl* animationCtrl; // Control for displaying animated GIFs
@@ -78,6 +89,11 @@ private:
     wxImage originalImage;
     wxImage currentImage;  // This image will reflect the current state including effects
     double zoomFactor = 1.0;  // Start with no zoom
+
+    // Gif things
+    std::vector<wxBitmap> gifFrames; // Vector to hold the processed frames
+    wxTimer* animationTimer;         // Timer to change frames
+    size_t currentFrameIndex;        // Current frame index
 
     int rotations = 0;//Rotation count for rotate the image multiple times
     wxDECLARE_EVENT_TABLE();
@@ -89,6 +105,8 @@ EVT_MENU(wxID_SAVE, MainFrame::OnExportImage)
 EVT_MENU(ID_CLEAR_IMAGES, MainFrame::OnMenuClearEffects)
 EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
 EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
+EVT_MENU(ID_APPLY_GRAYSCALE_GIF, MainFrame::OnMenuApplyGrayscaleGif)
+EVT_MENU(ID_APPLY_BLUR_GIF, MainFrame::OnMenuApplyBlurGif)
 EVT_MENU(ID_APPLY_DIM,MainFrame::OnMenuApplyDim)
 EVT_MENU(ID_APPLY_LIGHTEN,MainFrame::OnMenuApplyLighten)
 EVT_MENU(ID_APPLY_PIXELATE,MainFrame::OnMenuApplyPixelate)
@@ -114,9 +132,15 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     wxMenu* tools = new wxMenu;
     tools->Append(ID_APPLY_ROTATE, "&Rotate the image...\tCtrl-R", "Rotate the current image");
 
+    wxMenu* gifFilters = new wxMenu;
+    gifFilters->Append(ID_APPLY_GRAYSCALE_GIF, "&Apply Grayscale to GIF...\tCtrl-Shift-G", "Convert the current GIF to grayscale");
+    gifFilters->Append(ID_APPLY_BLUR_GIF, "&Apply Blur to GIF...\tCtrl-Shift-B", "Blur the current GIF");
+
+
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
     menuBar->Append(filters, "&Image Filters");
+    menuBar->Append(gifFilters, "&EXPERIMENTAL - Gif Filters");
     menuBar->Append(tools, "&Tools");
 
     SetMenuBar(menuBar);
@@ -127,6 +151,11 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     SetSizer(sizer);
 
     Centre();
+
+    currentFrameIndex = 0;
+    animationTimer = new wxTimer(this);
+    Bind(wxEVT_TIMER, &MainFrame::OnAnimationTimer, this);
+
 }
 
 void MainFrame::OnMenuImportImage(wxCommandEvent& event) {
@@ -139,6 +168,14 @@ void MainFrame::OnMenuApplyGrayscale(wxCommandEvent& event) {
 
 void MainFrame::OnMenuApplyBlur(wxCommandEvent& event) {
     BlurImage();
+}
+
+void MainFrame::OnMenuApplyGrayscaleGif(wxCommandEvent& event) {
+    GrayscaleGif();
+}
+
+void MainFrame::OnMenuApplyBlurGif(wxCommandEvent& event) {
+    BlurGif();
 }
 
 void MainFrame::OnMenuApplyDim(wxCommandEvent& event) {
@@ -155,6 +192,34 @@ void MainFrame::OnMenuApplyPixelate(wxCommandEvent& event) {
 
 void MainFrame::OnMenuClearEffects(wxCommandEvent& event) {
     ClearAllEffects();
+}
+
+void MainFrame::ImportGifImage(const wxString& path) {
+    wxAnimation animation;
+    if (!animation.LoadFile(path)) {
+        wxLogError("Failed to load GIF file.");
+        return;
+    }
+
+    ClearPreviousDisplay(); // Ensure previous displays are cleared
+
+    if (animation.GetFrameCount() > 1) {
+        if (!animationCtrl)
+            animationCtrl = new wxAnimationCtrl(this, wxID_ANY);
+        
+        animationCtrl->SetAnimation(animation);
+        animationCtrl->Play();
+        animationCtrl->Show();
+        GetSizer()->Insert(1, animationCtrl, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5); // Center the control
+        currentImage = animation.GetFrame(0); // Set the first frame as current image
+    }
+    else {
+        wxImage frameImage = animation.GetFrame(0);
+        UpdateImageDisplay(frameImage);
+    }
+    Layout();
+    Refresh();
+
 }
 
 void MainFrame::OnMenuApplyRotate(wxCommandEvent& event) {
@@ -210,30 +275,6 @@ void MainFrame::ImportImage() {
         originalImage = image;
         UpdateImageDisplay(image);
     }
-}
-
-void MainFrame::ImportGifImage(const wxString& path) {
-    wxAnimation animation;
-    if (!animation.LoadFile(path)) {
-        wxLogError("Failed to load GIF file.");
-        return;
-    }
-
-    ClearPreviousDisplay(); // Ensure previous displays are cleared
-
-    if (animation.GetFrameCount() > 1) {
-        animationCtrl = new wxAnimationCtrl(this, wxID_ANY);
-        animationCtrl->SetAnimation(animation);
-        animationCtrl->Play();
-        animationCtrl->Show();
-        GetSizer()->Insert(1, animationCtrl, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5); // Center the control
-    }
-    else {
-        wxImage frameImage = animation.GetFrame(0);
-        UpdateImageDisplay(frameImage);
-    }
-    Layout();
-    Refresh();
 }
 
 void MainFrame::OnExportImage(wxCommandEvent& event) {
@@ -308,6 +349,75 @@ void MainFrame::BlurImage() {
     wxImage blurImage = originalImage.Blur(10);
     UpdateImageDisplay(blurImage);
 }
+
+void MainFrame::GrayscaleGif() {
+    if (!animationCtrl || animationCtrl->GetAnimation().GetFrameCount() == 0) {
+        wxLogError("No GIF is currently loaded.");
+        return;
+    }
+
+    wxAnimation animation = animationCtrl->GetAnimation();
+    size_t frameCount = animation.GetFrameCount();
+    gifFrames.clear(); // Clear existing frames
+
+    for (size_t i = 0; i < frameCount; ++i) {
+        wxImage frameImage = animation.GetFrame(i);
+        wxImage grayImage = frameImage.ConvertToGreyscale();
+        gifFrames.push_back(wxBitmap(grayImage)); // Store the processed frame
+    }
+
+    // Stop and hide the animation control
+    animationCtrl->Stop();
+    animationCtrl->Hide();
+
+    // Reset the current frame index and restart the timer
+    currentFrameIndex = 0;
+    animationTimer->Start(100); // Adjust frame delay as needed
+}
+
+void MainFrame::BlurGif() {
+    if (!animationCtrl || animationCtrl->GetAnimation().GetFrameCount() == 0) {
+        wxLogError("No GIF is currently loaded.");
+        return;
+    }
+
+    wxAnimation animation = animationCtrl->GetAnimation();
+    size_t frameCount = animation.GetFrameCount();
+    gifFrames.clear(); // Clear existing frames
+
+    for (size_t i = 0; i < frameCount; ++i) {
+        wxImage frameImage = animation.GetFrame(i);
+        wxImage blurImage = frameImage.Blur(10); // Blur amount can be adjusted
+        gifFrames.push_back(wxBitmap(blurImage)); // Store the processed frame
+    }
+
+    // Stop and hide the animation control
+    animationCtrl->Stop();
+    animationCtrl->Hide();
+
+    // Reset the current frame index and restart the timer
+    currentFrameIndex = 0;
+    animationTimer->Start(100); // Adjust frame delay as needed
+}
+
+void MainFrame::OnAnimationTimer(wxTimerEvent& event) {
+    if (currentFrameIndex < gifFrames.size()) {
+        if (!imageDisplay)
+            imageDisplay = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
+
+        imageDisplay->SetBitmap(gifFrames[currentFrameIndex]);
+        imageDisplay->Show();
+        currentFrameIndex++;
+    }
+    else {
+        animationTimer->Stop(); // Stop the timer when the last frame is reached
+        currentFrameIndex = 0; // Reset the index if you want to loop the animation
+    }
+    Layout();
+    Refresh();
+}
+
+
 
 void MainFrame::DimImage() {
     if (!originalImage.IsOk()) {
@@ -409,6 +519,9 @@ void Manager::BlurImage() {
     mainFrame->BlurImage();
 }
 
+void Manager::ClearAllEffects() {
+    mainFrame->ClearAllEffects();
+}
 //Apply Dim effect
 void Manager::DimImage() {
     mainFrame->DimImage();
