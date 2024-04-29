@@ -110,7 +110,7 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
     menuBar->Append(filters, "&Image Filters");
-    menuBar->Append(gifFilters, "&Gif Filters");
+    menuBar->Append(gifFilters, "&EXPERIMENTAL - Gif Filters");
 
     SetMenuBar(menuBar);
 
