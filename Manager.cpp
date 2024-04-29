@@ -18,6 +18,7 @@ public:
     void BlurImage();
     void DimImage();
     void LightenImage();
+    void PixelateImage();
     void RotateImage();
     MainFrame* mainFrame; // Pointer to the main window
 
@@ -33,6 +34,7 @@ enum {
     ID_CLEAR_IMAGES,
     ID_APPLY_DIM,
     ID_APPLY_LIGHTEN,
+    ID_APPLY_PIXELATE,
     ID_APPLY_ROTATE
 };
 
@@ -60,6 +62,8 @@ public:
     void DimImage();
     void OnMenuApplyLighten(wxCommandEvent& event);
     void LightenImage();
+    void OnMenuApplyPixelate(wxCommandEvent& event);
+    void PixelateImage();
 
 
     //Tools
@@ -87,6 +91,7 @@ EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
 EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
 EVT_MENU(ID_APPLY_DIM,MainFrame::OnMenuApplyDim)
 EVT_MENU(ID_APPLY_LIGHTEN,MainFrame::OnMenuApplyLighten)
+EVT_MENU(ID_APPLY_PIXELATE,MainFrame::OnMenuApplyPixelate)
 EVT_MENU(ID_APPLY_ROTATE,MainFrame::OnMenuApplyRotate)
 EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
@@ -104,6 +109,7 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     filters->Append(ID_APPLY_BLUR, "&Apply Blur to Image...\tCtrl-B", "Blur the current image");
     filters->Append(ID_APPLY_DIM, "&Apply Dim to image...\tCtrl-D", "Dim the current image");
     filters->Append(ID_APPLY_LIGHTEN, "&Apply Lighten to image...\tCtrl-L", "Lighten the current image");
+    filters->Append(ID_APPLY_PIXELATE, "&Pixelate Image...\tCtrl-P", "Pixelate the current image");
 
     wxMenu* tools = new wxMenu;
     tools->Append(ID_APPLY_ROTATE, "&Rotate the image...\tCtrl-R", "Rotate the current image");
@@ -141,6 +147,10 @@ void MainFrame::OnMenuApplyDim(wxCommandEvent& event) {
 
 void MainFrame::OnMenuApplyLighten(wxCommandEvent& event) {
     LightenImage();
+}
+
+void MainFrame::OnMenuApplyPixelate(wxCommandEvent& event) {
+    PixelateImage();
 }
 
 void MainFrame::OnMenuClearEffects(wxCommandEvent& event) {
@@ -317,6 +327,48 @@ void MainFrame::LightenImage() {
     UpdateImageDisplay(lightenImage);
 }
 
+void MainFrame::PixelateImage() {
+    if (!originalImage.IsOk()) {
+        wxLogError("No Valid Image In Workspace.");
+            return;
+    }
+    //Pixel size
+    int pixel = 10;
+    //Copy original image
+    wxImage pixelImage = originalImage;
+
+    //get colors of pixels
+    for (int y = 0; y < pixelImage.GetHeight(); y += pixel) {
+        for (int x = 0; x < pixelImage.GetWidth(); x += pixel) {
+            int redTotal = 0; 
+            int greenTotal = 0; 
+            int blueTotal = 0;
+            int totalPixel = 0;
+
+            for (int color1 = 0; color1 < pixel && y + color1 < pixelImage.GetHeight(); color1++) {
+                for (int color2 = 0; color2 < pixel && x + color2 < pixelImage.GetWidth(); color2++) {
+                    redTotal += pixelImage.GetRed(x + color2, y + color1);
+                    greenTotal += pixelImage.GetGreen(x + color2, y + color1);
+                    blueTotal += pixelImage.GetBlue(x + color2, y + color1);
+                    totalPixel++;
+                }
+            }
+            //Average color of pixels
+            int redAverage = redTotal / totalPixel;
+            int greenAverage = greenTotal / totalPixel;
+            int blueAverage = blueTotal / totalPixel;
+
+            //Color pixels with the average color
+            for (int color1 = 0; color1 < pixel && y + color1 < pixelImage.GetHeight(); color1++) {
+                for (int color2 = 0; color2 < pixel && x + color2 < pixelImage.GetWidth(); color2++) {
+                    pixelImage.SetRGB(x + color2, y + color1, redAverage, greenAverage, blueAverage);
+                }
+            }
+        }
+    }
+    UpdateImageDisplay(pixelImage);
+}
+
 void MainFrame::RotateImage() {
     if (!currentImage.IsOk()) {
         wxLogError("No Valid Image In Workspace.");
@@ -365,6 +417,11 @@ void Manager::DimImage() {
 //Apply Lighten effect
 void Manager::LightenImage() {
     mainFrame->LightenImage();
+}
+
+//Apply Pixelate effect
+void Manager::PixelateImage() {
+    mainFrame->PixelateImage();
 }
 
 //Apply Rotation
