@@ -84,9 +84,13 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     filters->Append(ID_APPLY_GRAYSCALE, "&Apply Grayscale to Image...\tCtrl-G", "Convert the current image to grayscale");
     filters->Append(ID_APPLY_BLUR, "&Apply Blur to Image...\tCtrl-B", "Blur the current image");
 
+    wxMenu* tools = new wxMenu;
+
+
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
     menuBar->Append(filters, "&Image Filters");
+    menuBar->Append(tools, "&Tools");
 
     SetMenuBar(menuBar);
 
