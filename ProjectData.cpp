@@ -54,7 +54,7 @@ bool ProjectData::Load(const std::string& projectName) {
     return true;
 }
 
-std::vector<std::string> ProjectData::GetAllProjectNames()
+std::vector<std::string> ProjectData::GetAllNames()
 {
     std::vector<std::string> names;
     json allData;
@@ -70,8 +70,20 @@ std::vector<std::string> ProjectData::GetAllProjectNames()
     return names;
 }
 
-void DeleteProject(std::string name) {
+void ProjectData::DeleteProject(std::string name) {
+    json allData;
+    std::ifstream iFileStream(FILELOCATION);
+    if (iFileStream.is_open()) {
+        allData = json::parse(iFileStream);
+        iFileStream.close();
+    }
 
+    allData.erase(name);
 
+    std::ofstream oFileStream(FILELOCATION);
+    if (oFileStream.is_open()) {
+        oFileStream << std::setw(4) << allData << std::endl;
+        oFileStream.close();
+    }
 }
 

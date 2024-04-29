@@ -59,7 +59,7 @@ public:
 	bool Load(const std::string& projectName);
 
 	//Returns a vector with the names of all projects saved so far
-	std::vector<std::string> GetAllProjectNames();
+	std::vector<std::string> GetAllNames();
 
 private:
 	//Need to plug in path for where file will go

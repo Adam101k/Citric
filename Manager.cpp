@@ -189,7 +189,7 @@ void MainFrame::ImportGifImage(const wxString& path) {
     Refresh();
 }
 
-void MainFrame::OnExportImage(wxCommandEvent& event) {
+void MainFrame::OnExportImage(wxCommandEvent &event) {
 
     wxFileDialog saveDialog(this, "Save Image File", "", "", "Image files(*.bmp; *.png; *.jpg; *.gif) | *.bmp; *.png; *.jpg *.gif;",
         wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
@@ -281,10 +281,6 @@ void Manager::ShowMainFrame() {
 // Import image to the workspace
 void Manager::ImportImage() {
     mainFrame->ImportImage();
-}
-
-void Manager::ImportImage() {
-    mainFrame->OnExportImage
 }
 
 // Apply grayscale effect
