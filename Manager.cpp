@@ -4,6 +4,7 @@
 #include <wx/filedlg.h>
 #include <wx/statbmp.h>
 #include <wx/animate.h>
+#include <stack>
 
 class MainFrame; // Forward declaration
 
@@ -22,6 +23,8 @@ public:
     void LightenImage();
     void PixelateImage();
     void RotateImage();
+    void UndoAction();
+    void RedoAction();
     MainFrame* mainFrame; // Pointer to the main window
 
 private:
@@ -39,7 +42,9 @@ enum {
     ID_APPLY_DIM,
     ID_APPLY_LIGHTEN,
     ID_APPLY_PIXELATE,
-    ID_APPLY_ROTATE
+    ID_APPLY_ROTATE,
+    ID_UNDO,
+    ID_REDO
 };
 
 // MainFrame class declaration
@@ -73,6 +78,10 @@ public:
     //Tools
     void OnMenuApplyRotate(wxCommandEvent& event);
     void RotateImage();
+    void OnMenuApplyUndo(wxCommandEvent& event);
+    void UndoAction();
+    void OnMenuApplyRedo(wxCommandEvent& event);
+    void RedoAction();
 
     // Gif Visual Effects
     void OnMenuApplyGrayscaleGif(wxCommandEvent& event);
@@ -96,6 +105,8 @@ private:
     size_t currentFrameIndex;        // Current frame index
 
     int rotations = 0;//Rotation count for rotate the image multiple times
+    std::stack<wxImage> previousImage; //Stack that stores previous states of the image
+    std::stack<wxImage> nextImage; //Stack that stores next state of the image
     wxDECLARE_EVENT_TABLE();
 };
 
@@ -111,6 +122,8 @@ EVT_MENU(ID_APPLY_DIM,MainFrame::OnMenuApplyDim)
 EVT_MENU(ID_APPLY_LIGHTEN,MainFrame::OnMenuApplyLighten)
 EVT_MENU(ID_APPLY_PIXELATE,MainFrame::OnMenuApplyPixelate)
 EVT_MENU(ID_APPLY_ROTATE,MainFrame::OnMenuApplyRotate)
+EVT_MENU(ID_UNDO,MainFrame::OnMenuApplyUndo)
+EVT_MENU(ID_REDO,MainFrame::OnMenuApplyRedo)
 EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
 
@@ -131,6 +144,8 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 
     wxMenu* tools = new wxMenu;
     tools->Append(ID_APPLY_ROTATE, "&Rotate the image...\tCtrl-R", "Rotate the current image");
+    tools->Append(ID_UNDO, "&Undo...\tCtrl-Z", "Undo the previous action");
+    tools->Append(ID_REDO, "&Redo...\tCtrl-Shift-Z", "Redo the previous action");
 
     wxMenu* gifFilters = new wxMenu;
     gifFilters->Append(ID_APPLY_GRAYSCALE_GIF, "&Apply Grayscale to GIF...\tCtrl-Shift-G", "Convert the current GIF to grayscale");
@@ -224,6 +239,14 @@ void MainFrame::ImportGifImage(const wxString& path) {
 
 void MainFrame::OnMenuApplyRotate(wxCommandEvent& event) {
     RotateImage();
+}
+
+void MainFrame::OnMenuApplyUndo(wxCommandEvent& event) {
+    UndoAction();
+}
+
+void MainFrame::OnMenuApplyRedo(wxCommandEvent& event) {
+    RedoAction();
 }
 
 void MainFrame::OnMouseWheel(wxMouseEvent& event) {
@@ -337,6 +360,7 @@ void MainFrame::GrayscaleImage() {
         wxLogError("No Valid Image In Workplace.");
         return;
     }
+    previousImage.push(currentImage);
     wxImage grayImage = originalImage.ConvertToGreyscale();
     UpdateImageDisplay(grayImage);
 }
@@ -346,6 +370,7 @@ void MainFrame::BlurImage() {
         wxLogError("No Valid Image In Workplace.");
         return;
     }
+    previousImage.push(currentImage);
     wxImage blurImage = originalImage.Blur(10);
     UpdateImageDisplay(blurImage);
 }
@@ -424,6 +449,7 @@ void MainFrame::DimImage() {
         wxLogError("No Vaid Image In Workspace.");
         return;
     }
+    previousImage.push(currentImage);
     wxImage dimImage = originalImage.ConvertToDisabled(10);
     UpdateImageDisplay(dimImage);
 }
@@ -433,6 +459,7 @@ void MainFrame::LightenImage() {
         wxLogError("No Valid Image In Workspace.");
         return;
     }
+    previousImage.push(currentImage);
     wxImage lightenImage = originalImage.ChangeLightness(110);
     UpdateImageDisplay(lightenImage);
 }
@@ -442,6 +469,7 @@ void MainFrame::PixelateImage() {
         wxLogError("No Valid Image In Workspace.");
             return;
     }
+    previousImage.push(currentImage);
     //Pixel size
     int pixel = 10;
     //Copy original image
@@ -484,9 +512,34 @@ void MainFrame::RotateImage() {
         wxLogError("No Valid Image In Workspace.");
         return;
     }
+    previousImage.push(currentImage);
     rotations++;
     wxImage rotateImage = currentImage.Rotate90(true);
     UpdateImageDisplay(rotateImage);
+}
+
+void MainFrame::UndoAction() {
+    if (previousImage.empty()) {
+        wxLogError("No Actions to Undo.");
+        return;
+    }
+    nextImage.push(currentImage);
+    wxImage previousState = previousImage.top();
+    previousImage.pop();
+    currentImage = previousState;
+    UpdateImageDisplay(currentImage);
+}
+
+void MainFrame::RedoAction() {
+    if (nextImage.empty()) {
+        wxLogError("No Actions to Redo.");
+        return;
+    }
+    previousImage.push(currentImage);
+    wxImage nextState = nextImage.top();
+    nextImage.pop();
+    currentImage = nextState;
+    UpdateImageDisplay(currentImage);
 }
 // Manager Class Decleration
 Manager::Manager() {
@@ -540,6 +593,14 @@ void Manager::PixelateImage() {
 //Apply Rotation
 void Manager::RotateImage() {
     mainFrame->RotateImage();
+}
+
+void Manager::UndoAction() {
+    mainFrame->UndoAction();
+}
+
+void Manager::RedoAction() {
+    mainFrame->RedoAction();
 }
 
 // wxWidgets application entry point
