@@ -5,6 +5,7 @@
 #include <wx/statbmp.h>
 #include <wx/animate.h>
 #include <cmath>
+#include <stack>
 
 class MainFrame; // Forward declaration
 
@@ -17,6 +18,14 @@ public:
     void ClearAllEffects(); // Helper Method to clear effects while keeping the original image on display
     void GrayscaleImage();
     void BlurImage();
+    void GrayscaleGif();
+    void BlurGif();
+    void DimImage();
+    void LightenImage();
+    void PixelateImage();
+    void RotateImage();
+    void UndoAction();
+    void RedoAction();
     MainFrame* mainFrame; // Pointer to the main window
 
 private:
@@ -31,6 +40,14 @@ enum {
     ID_CLEAR_IMAGES,
     ID_CROP_IMAGE,
     ID_ROTATE_IMAGE,
+    ID_APPLY_GRAYSCALE_GIF = wxID_HIGHEST + 100,
+    ID_APPLY_BLUR_GIF,
+    ID_APPLY_DIM,
+    ID_APPLY_LIGHTEN,
+    ID_APPLY_PIXELATE,
+    ID_APPLY_ROTATE,
+    ID_UNDO,
+    ID_REDO
 };
 
 // MainFrame class declaration
@@ -53,6 +70,28 @@ public:
     void GrayscaleImage();
     void OnMenuApplyBlur(wxCommandEvent& event);
     void BlurImage();
+    void OnMenuApplyDim(wxCommandEvent& event);
+    void DimImage();
+    void OnMenuApplyLighten(wxCommandEvent& event);
+    void LightenImage();
+    void OnMenuApplyPixelate(wxCommandEvent& event);
+    void PixelateImage();
+
+
+    //Tools
+    void OnMenuApplyRotate(wxCommandEvent& event);
+    void RotateImage();
+    void OnMenuApplyUndo(wxCommandEvent& event);
+    void UndoAction();
+    void OnMenuApplyRedo(wxCommandEvent& event);
+    void RedoAction();
+
+    // Gif Visual Effects
+    void OnMenuApplyGrayscaleGif(wxCommandEvent& event);
+    void OnMenuApplyBlurGif(wxCommandEvent& event);
+    void GrayscaleGif();
+    void BlurGif();
+    void OnAnimationTimer(wxTimerEvent& event);
 
     //Tools 
     void OnCropImage(wxCommandEvent& event);
@@ -69,6 +108,14 @@ private:
     wxImage currentImage;  // This image will reflect the current state including effects
     double zoomFactor = 1.0;  // Start with no zoom
 
+    // Gif things
+    std::vector<wxBitmap> gifFrames; // Vector to hold the processed frames
+    wxTimer* animationTimer;         // Timer to change frames
+    size_t currentFrameIndex;        // Current frame index
+
+    int rotations = 0;//Rotation count for rotate the image multiple times
+    std::stack<wxImage> previousImage; //Stack that stores previous states of the image
+    std::stack<wxImage> nextImage; //Stack that stores next state of the image
     wxDECLARE_EVENT_TABLE();
 };
 
@@ -80,6 +127,14 @@ EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
 EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
 EVT_MENU(ID_CROP_IMAGE, MainFrame::OnCropImage)
 EVT_MENU(ID_ROTATE_IMAGE,MainFrame::OnRotateImage)
+EVT_MENU(ID_APPLY_GRAYSCALE_GIF, MainFrame::OnMenuApplyGrayscaleGif)
+EVT_MENU(ID_APPLY_BLUR_GIF, MainFrame::OnMenuApplyBlurGif)
+EVT_MENU(ID_APPLY_DIM,MainFrame::OnMenuApplyDim)
+EVT_MENU(ID_APPLY_LIGHTEN,MainFrame::OnMenuApplyLighten)
+EVT_MENU(ID_APPLY_PIXELATE,MainFrame::OnMenuApplyPixelate)
+EVT_MENU(ID_APPLY_ROTATE,MainFrame::OnMenuApplyRotate)
+EVT_MENU(ID_UNDO,MainFrame::OnMenuApplyUndo)
+EVT_MENU(ID_REDO,MainFrame::OnMenuApplyRedo)
 EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
 
@@ -94,6 +149,19 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     filters->Append(ID_CLEAR_IMAGES, "&Clear All Visual Effects...\tCtrl-C", "Clear all effects from current image");
     filters->Append(ID_APPLY_GRAYSCALE, "&Apply Grayscale to Image...\tCtrl-G", "Convert the current image to grayscale");
     filters->Append(ID_APPLY_BLUR, "&Apply Blur to Image...\tCtrl-B", "Blur the current image");
+    filters->Append(ID_APPLY_DIM, "&Apply Dim to image...\tCtrl-D", "Dim the current image");
+    filters->Append(ID_APPLY_LIGHTEN, "&Apply Lighten to image...\tCtrl-L", "Lighten the current image");
+    filters->Append(ID_APPLY_PIXELATE, "&Pixelate Image...\tCtrl-P", "Pixelate the current image");
+
+    wxMenu* tools = new wxMenu;
+    tools->Append(ID_APPLY_ROTATE, "&Rotate the image...\tCtrl-R", "Rotate the current image");
+    tools->Append(ID_UNDO, "&Undo...\tCtrl-Z", "Undo the previous action");
+    tools->Append(ID_REDO, "&Redo...\tCtrl-Shift-Z", "Redo the previous action");
+
+    wxMenu* gifFilters = new wxMenu;
+    gifFilters->Append(ID_APPLY_GRAYSCALE_GIF, "&Apply Grayscale to GIF...\tCtrl-Shift-G", "Convert the current GIF to grayscale");
+    gifFilters->Append(ID_APPLY_BLUR_GIF, "&Apply Blur to GIF...\tCtrl-Shift-B", "Blur the current GIF");
+
 
     wxMenu* tools = new wxMenu;
     tools->Append(ID_CROP_IMAGE, "&Crop Image");
@@ -102,6 +170,7 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
     menuBar->Append(filters, "&Image Filters");
+    menuBar->Append(gifFilters, "&EXPERIMENTAL - Gif Filters");
     menuBar->Append(tools, "&Tools");
 
     SetMenuBar(menuBar);
@@ -112,6 +181,11 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     SetSizer(sizer);
 
     Centre();
+
+    currentFrameIndex = 0;
+    animationTimer = new wxTimer(this);
+    Bind(wxEVT_TIMER, &MainFrame::OnAnimationTimer, this);
+
 }
 
 void MainFrame::OnMenuImportImage(wxCommandEvent& event) {
@@ -126,6 +200,26 @@ void MainFrame::OnMenuApplyBlur(wxCommandEvent& event) {
     BlurImage();
 }
 
+void MainFrame::OnMenuApplyGrayscaleGif(wxCommandEvent& event) {
+    GrayscaleGif();
+}
+
+void MainFrame::OnMenuApplyBlurGif(wxCommandEvent& event) {
+    BlurGif();
+}
+
+void MainFrame::OnMenuApplyDim(wxCommandEvent& event) {
+    DimImage();
+}
+
+void MainFrame::OnMenuApplyLighten(wxCommandEvent& event) {
+    LightenImage();
+}
+
+void MainFrame::OnMenuApplyPixelate(wxCommandEvent& event) {
+    PixelateImage();
+}
+
 void MainFrame::OnMenuClearEffects(wxCommandEvent& event) {
     ClearAllEffects();
 }
@@ -137,6 +231,46 @@ void MainFrame::OnCropImage(wxCommandEvent& event) {
 void MainFrame::OnRotateImage(wxCommandEvent & event) {
     RotateImage();
 }
+void MainFrame::ImportGifImage(const wxString& path) {
+    wxAnimation animation;
+    if (!animation.LoadFile(path)) {
+        wxLogError("Failed to load GIF file.");
+        return;
+    }
+
+    ClearPreviousDisplay(); // Ensure previous displays are cleared
+
+    if (animation.GetFrameCount() > 1) {
+        if (!animationCtrl)
+            animationCtrl = new wxAnimationCtrl(this, wxID_ANY);
+        
+        animationCtrl->SetAnimation(animation);
+        animationCtrl->Play();
+        animationCtrl->Show();
+        GetSizer()->Insert(1, animationCtrl, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 5); // Center the control
+        currentImage = animation.GetFrame(0); // Set the first frame as current image
+    }
+    else {
+        wxImage frameImage = animation.GetFrame(0);
+        UpdateImageDisplay(frameImage);
+    }
+    Layout();
+    Refresh();
+
+}
+
+void MainFrame::OnMenuApplyRotate(wxCommandEvent& event) {
+    RotateImage();
+}
+
+void MainFrame::OnMenuApplyUndo(wxCommandEvent& event) {
+    UndoAction();
+}
+
+void MainFrame::OnMenuApplyRedo(wxCommandEvent& event) {
+    RedoAction();
+}
+
 void MainFrame::OnMouseWheel(wxMouseEvent& event) {
     if (!currentImage.IsOk()) {
         // Make sure there's a valid image loaded
@@ -214,6 +348,7 @@ void MainFrame::ImportGifImage(const wxString& path) {
 
 void MainFrame::OnExportImage(wxCommandEvent &event) {
 
+
     wxFileDialog saveDialog(this, "Save Image File", "", "", "Image files(*.bmp; *.png; *.jpg; *.gif) | *.bmp; *.png; *.jpg *.gif;",
         wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
@@ -272,6 +407,7 @@ void MainFrame::GrayscaleImage() {
         wxLogError("No Valid Image In Workplace.");
         return;
     }
+    previousImage.push(currentImage);
     wxImage grayImage = originalImage.ConvertToGreyscale();
     UpdateImageDisplay(grayImage);
 }
@@ -281,6 +417,7 @@ void MainFrame::BlurImage() {
         wxLogError("No Valid Image In Workplace.");
         return;
     }
+    previousImage.push(currentImage);
     wxImage blurImage = originalImage.Blur(10);
     UpdateImageDisplay(blurImage);
 }
@@ -340,7 +477,172 @@ void MainFrame::CropImage()
 
     
 
+void MainFrame::GrayscaleGif() {
+    if (!animationCtrl || animationCtrl->GetAnimation().GetFrameCount() == 0) {
+        wxLogError("No GIF is currently loaded.");
+        return;
+    }
 
+    wxAnimation animation = animationCtrl->GetAnimation();
+    size_t frameCount = animation.GetFrameCount();
+    gifFrames.clear(); // Clear existing frames
+
+    for (size_t i = 0; i < frameCount; ++i) {
+        wxImage frameImage = animation.GetFrame(i);
+        wxImage grayImage = frameImage.ConvertToGreyscale();
+        gifFrames.push_back(wxBitmap(grayImage)); // Store the processed frame
+    }
+
+    // Stop and hide the animation control
+    animationCtrl->Stop();
+    animationCtrl->Hide();
+
+    // Reset the current frame index and restart the timer
+    currentFrameIndex = 0;
+    animationTimer->Start(100); // Adjust frame delay as needed
+}
+
+void MainFrame::BlurGif() {
+    if (!animationCtrl || animationCtrl->GetAnimation().GetFrameCount() == 0) {
+        wxLogError("No GIF is currently loaded.");
+        return;
+    }
+
+    wxAnimation animation = animationCtrl->GetAnimation();
+    size_t frameCount = animation.GetFrameCount();
+    gifFrames.clear(); // Clear existing frames
+
+    for (size_t i = 0; i < frameCount; ++i) {
+        wxImage frameImage = animation.GetFrame(i);
+        wxImage blurImage = frameImage.Blur(10); // Blur amount can be adjusted
+        gifFrames.push_back(wxBitmap(blurImage)); // Store the processed frame
+    }
+
+    // Stop and hide the animation control
+    animationCtrl->Stop();
+    animationCtrl->Hide();
+
+    // Reset the current frame index and restart the timer
+    currentFrameIndex = 0;
+    animationTimer->Start(100); // Adjust frame delay as needed
+}
+
+void MainFrame::OnAnimationTimer(wxTimerEvent& event) {
+    if (currentFrameIndex < gifFrames.size()) {
+        if (!imageDisplay)
+            imageDisplay = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
+
+        imageDisplay->SetBitmap(gifFrames[currentFrameIndex]);
+        imageDisplay->Show();
+        currentFrameIndex++;
+    }
+    else {
+        animationTimer->Stop(); // Stop the timer when the last frame is reached
+        currentFrameIndex = 0; // Reset the index if you want to loop the animation
+    }
+    Layout();
+    Refresh();
+}
+
+
+
+void MainFrame::DimImage() {
+    if (!originalImage.IsOk()) {
+        wxLogError("No Vaid Image In Workspace.");
+        return;
+    }
+    previousImage.push(currentImage);
+    wxImage dimImage = originalImage.ConvertToDisabled(10);
+    UpdateImageDisplay(dimImage);
+}
+
+void MainFrame::LightenImage() {
+    if (!originalImage.IsOk()) {
+        wxLogError("No Valid Image In Workspace.");
+        return;
+    }
+    previousImage.push(currentImage);
+    wxImage lightenImage = originalImage.ChangeLightness(110);
+    UpdateImageDisplay(lightenImage);
+}
+
+void MainFrame::PixelateImage() {
+    if (!originalImage.IsOk()) {
+        wxLogError("No Valid Image In Workspace.");
+            return;
+    }
+    previousImage.push(currentImage);
+    //Pixel size
+    int pixel = 10;
+    //Copy original image
+    wxImage pixelImage = originalImage;
+
+    //get colors of pixels
+    for (int y = 0; y < pixelImage.GetHeight(); y += pixel) {
+        for (int x = 0; x < pixelImage.GetWidth(); x += pixel) {
+            int redTotal = 0; 
+            int greenTotal = 0; 
+            int blueTotal = 0;
+            int totalPixel = 0;
+
+            for (int color1 = 0; color1 < pixel && y + color1 < pixelImage.GetHeight(); color1++) {
+                for (int color2 = 0; color2 < pixel && x + color2 < pixelImage.GetWidth(); color2++) {
+                    redTotal += pixelImage.GetRed(x + color2, y + color1);
+                    greenTotal += pixelImage.GetGreen(x + color2, y + color1);
+                    blueTotal += pixelImage.GetBlue(x + color2, y + color1);
+                    totalPixel++;
+                }
+            }
+            //Average color of pixels
+            int redAverage = redTotal / totalPixel;
+            int greenAverage = greenTotal / totalPixel;
+            int blueAverage = blueTotal / totalPixel;
+
+            //Color pixels with the average color
+            for (int color1 = 0; color1 < pixel && y + color1 < pixelImage.GetHeight(); color1++) {
+                for (int color2 = 0; color2 < pixel && x + color2 < pixelImage.GetWidth(); color2++) {
+                    pixelImage.SetRGB(x + color2, y + color1, redAverage, greenAverage, blueAverage);
+                }
+            }
+        }
+    }
+    UpdateImageDisplay(pixelImage);
+}
+
+void MainFrame::RotateImage() {
+    if (!currentImage.IsOk()) {
+        wxLogError("No Valid Image In Workspace.");
+        return;
+    }
+    previousImage.push(currentImage);
+    rotations++;
+    wxImage rotateImage = currentImage.Rotate90(true);
+    UpdateImageDisplay(rotateImage);
+}
+
+void MainFrame::UndoAction() {
+    if (previousImage.empty()) {
+        wxLogError("No Actions to Undo.");
+        return;
+    }
+    nextImage.push(currentImage);
+    wxImage previousState = previousImage.top();
+    previousImage.pop();
+    currentImage = previousState;
+    UpdateImageDisplay(currentImage);
+}
+
+void MainFrame::RedoAction() {
+    if (nextImage.empty()) {
+        wxLogError("No Actions to Redo.");
+        return;
+    }
+    previousImage.push(currentImage);
+    wxImage nextState = nextImage.top();
+    nextImage.pop();
+    currentImage = nextState;
+    UpdateImageDisplay(currentImage);
+}
 // Manager Class Decleration
 Manager::Manager() {
     int screenWidth, screenHeight;
@@ -370,6 +672,37 @@ void Manager::GrayscaleImage() {
 // Apply blur effect
 void Manager::BlurImage() {
     mainFrame->BlurImage();
+}
+
+void Manager::ClearAllEffects() {
+    mainFrame->ClearAllEffects();
+}
+//Apply Dim effect
+void Manager::DimImage() {
+    mainFrame->DimImage();
+}
+
+//Apply Lighten effect
+void Manager::LightenImage() {
+    mainFrame->LightenImage();
+}
+
+//Apply Pixelate effect
+void Manager::PixelateImage() {
+    mainFrame->PixelateImage();
+}
+
+//Apply Rotation
+void Manager::RotateImage() {
+    mainFrame->RotateImage();
+}
+
+void Manager::UndoAction() {
+    mainFrame->UndoAction();
+}
+
+void Manager::RedoAction() {
+    mainFrame->RedoAction();
 }
 
 // wxWidgets application entry point
