@@ -46,7 +46,7 @@ public:
     void ClearPreviousDisplay(); // Helper method to clear any existing displays
     
 
-    // Visual Effects
+    // Image Visual Effects
     void OnMenuClearEffects(wxCommandEvent& event);
     void ClearAllEffects(); // Helper Method to clear effects while keeping the original image on display
     void OnMenuApplyGrayscale(wxCommandEvent& event);
