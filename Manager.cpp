@@ -4,6 +4,7 @@
 #include <wx/filedlg.h>
 #include <wx/statbmp.h>
 #include <wx/animate.h>
+#include <cmath>
 
 class MainFrame; // Forward declaration
 
@@ -28,7 +29,8 @@ enum {
     ID_APPLY_GRAYSCALE,
     ID_APPLY_BLUR,
     ID_CLEAR_IMAGES,
-    ID_CROP_IMAGE
+    ID_CROP_IMAGE,
+    ID_ROTATE_IMAGE,
 };
 
 // MainFrame class declaration
@@ -55,6 +57,8 @@ public:
     //Tools 
     void OnCropImage(wxCommandEvent& event);
     void CropImage();
+    void OnRotateImage(wxCommandEvent& event);
+    void RotateImage();
 
 private:
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
@@ -75,6 +79,7 @@ EVT_MENU(ID_CLEAR_IMAGES, MainFrame::OnMenuClearEffects)
 EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
 EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
 EVT_MENU(ID_CROP_IMAGE, MainFrame::OnCropImage)
+EVT_MENU(ID_ROTATE_IMAGE,MainFrame::OnRotateImage)
 EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
 
@@ -92,6 +97,7 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 
     wxMenu* tools = new wxMenu;
     tools->Append(ID_CROP_IMAGE, "&Crop Image");
+    tools->Append(ID_ROTATE_IMAGE, "&Rotate Image");
 
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
@@ -128,6 +134,9 @@ void MainFrame::OnCropImage(wxCommandEvent& event) {
     CropImage();
 }
 
+void MainFrame::OnRotateImage(wxCommandEvent & event) {
+    RotateImage();
+}
 void MainFrame::OnMouseWheel(wxMouseEvent& event) {
     if (!currentImage.IsOk()) {
         // Make sure there's a valid image loaded
@@ -276,9 +285,14 @@ void MainFrame::BlurImage() {
     UpdateImageDisplay(blurImage);
 }
 
-//Crops Images
+//Crops Images STILL NEED TO ADD REVERT IMAGE FETURES
 void MainFrame::CropImage()
 {
+    if (!originalImage.IsOk()) {
+        wxLogError("No Valid Image In Workplace");
+        return;
+    }
+
     wxTextEntryDialog dialog(this, "Enter crop dimensions (width,height):", "Custom Crop", "", wxOK | wxCANCEL);
     if (dialog.ShowModal() == wxID_OK) {
         wxString userInput = dialog.GetValue();
@@ -299,6 +313,31 @@ void MainFrame::CropImage()
         }
     }
 }
+
+//Currently Causes Weird Stuff to happen after croping will come back to later 
+
+/*void MainFrame::RotateImage()
+{
+    if (!originalImage.IsOk()) {
+        wxLogError("No Valid Image In Workplace");
+        return;
+    }
+
+    
+    wxTextEntryDialog dialog(this, "Enter New Angle Of Rotation", "Custom Rotation", "", wxOK | wxCANCEL);
+    if (dialog.ShowModal() == wxID_OK) {
+        long rotationAngle;
+        wxString userInput = dialog.GetValue();
+        if (userInput.ToLong(&rotationAngle)) {
+            wxImage rotatedImage = currentImage.Rotate(rotationAngle, wxPoint(currentImage.GetWidth() / 2, currentImage.GetHeight() / 2));
+            UpdateImageDisplay(rotatedImage);
+        }
+        else {
+            wxMessageBox("Please Enter A Number");
+        }
+    }
+}*/
+
     
 
 
