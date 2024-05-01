@@ -88,7 +88,6 @@ public:
     void OnMenuApplyBlurGif(wxCommandEvent& event);
     void GrayscaleGif();
     void BlurGif();
-    void OnAnimationTimer(wxTimerEvent& event);
 
 private:
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
@@ -166,10 +165,6 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     SetSizer(sizer);
 
     Centre();
-
-    currentFrameIndex = 0;
-    animationTimer = new wxTimer(this);
-    Bind(wxEVT_TIMER, &MainFrame::OnAnimationTimer, this);
 
 }
 
@@ -423,23 +418,6 @@ void MainFrame::BlurGif() {
     // Reset the current frame index and restart the timer
     currentFrameIndex = 0;
     animationTimer->Start(100); // Adjust frame delay as needed
-}
-
-void MainFrame::OnAnimationTimer(wxTimerEvent& event) {
-    if (currentFrameIndex < gifFrames.size()) {
-        if (!imageDisplay)
-            imageDisplay = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
-
-        imageDisplay->SetBitmap(gifFrames[currentFrameIndex]);
-        imageDisplay->Show();
-        currentFrameIndex++;
-    }
-    else {
-        animationTimer->Stop(); // Stop the timer when the last frame is reached
-        currentFrameIndex = 0; // Reset the index if you want to loop the animation
-    }
-    Layout();
-    Refresh();
 }
 
 
