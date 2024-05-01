@@ -1,3 +1,6 @@
+// Start menu
+// Kamilo Ramirez - 4/30/24
+
 #include <wx/wx.h>
 
 class MyApp : public wxApp
@@ -36,23 +39,12 @@ bool MyApp::OnInit() // function to make frame appear
     return true;
 }
 
-MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size) : wxFrame(nullptr, wxID_ANY, title, pos, size)  //all properties
+MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size) : wxFrame(nullptr, wxID_ANY, title, pos, size)  // all properties within the frame
 {
 
-    // Main panel
+    // Main panel instance
     wxPanel* panel_main = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(500, 500));
     panel_main->SetBackgroundColour(wxColor(50, 50, 50));
-
-    wxStaticText* text_main = new wxStaticText(panel_main, wxID_ANY, "CITRIC", wxPoint(10, 10)); // Text within the main panel
-    text_main->SetForegroundColour(*wxWHITE); // Set text color to white
-    text_main->SetBackgroundColour(wxColor(90, 90, 90));
-
-    // Text Adjustments
-    wxFont font = text_main->GetFont(); // Font Getter
-    font.SetPointSize(17); // Set font size to 16 points
-    font.MakeBold(); // Make the font bold
-    text_main->SetFont(font); // Apply the font to the static text
-
 
     // Left Panel Instance
     wxPanel* panel_left = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(100, 100));
@@ -68,7 +60,29 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size) 
 
     // Top Panel Instance
     panel_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(1000, 50));
-    panel_top->SetBackgroundColour(wxColor(90, 90, 90)); // Changed color for visibility
+    panel_top->SetBackgroundColour(wxColor(75, 75, 75)); // Changed color for visibility
+
+    // Create centered text for panel_top
+    wxStaticText* text_top = new wxStaticText(panel_top, wxID_ANY, "CITRIC", wxDefaultPosition, wxDefaultSize, wxALIGN_CENTER_HORIZONTAL);
+    text_top->SetForegroundColour(*wxWHITE); // Set text color
+    text_top->SetBackgroundColour(wxColour(75, 75, 75)); // Set background color
+    // Create the font with larger size and bold
+    wxFont font = wxFont(wxFontInfo(22).Bold());
+    // Apply the font to the static text control
+    text_top->SetFont(font);
+
+    // Create a vertical box sizer for panel_top
+    wxBoxSizer* sizerPanelTopText = new wxBoxSizer(wxVERTICAL);
+    panel_top->SetSizer(sizerPanelTopText); // Set the sizer for panel_top
+
+    // Add stretchable space to push the text to the center vertically
+    sizerPanelTopText->AddStretchSpacer();
+
+    // Add the text to the vertical sizer
+    sizerPanelTopText->Add(text_top, 0, wxALIGN_CENTER_HORIZONTAL);
+
+    // Add stretchable space to push the text to the center vertically
+    sizerPanelTopText->AddStretchSpacer();
 
     // Create a horizontal box sizer for the middle panel
     wxBoxSizer* sizerMiddlePanel = new wxBoxSizer(wxHORIZONTAL);
@@ -87,15 +101,51 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size) 
     // Create a vertical box sizer for panel_sub2
     wxBoxSizer* sizerPanelSub2 = new wxBoxSizer(wxVERTICAL);
     panel_sub2->SetSizer(sizerPanelSub2); // Set the sizer for panel_sub2
+    
+    // Vertical sub_panel2 panels
+    wxPanel* panel_sub2_1 = new wxPanel(panel_sub2, wxID_ANY, wxDefaultPosition, wxSize(100, 200));
+    panel_sub2_1->SetBackgroundColour(wxColor(120, 120, 120));
 
-    // Create two buttons
-    wxButton* button_sub2_1 = new wxButton(panel_sub2, wxID_ANY, "Button 1");   // change text for buttons
-    wxButton* button_sub2_2 = new wxButton(panel_sub2, wxID_ANY, "Button 2");   // change text for buttons
+    wxPanel* panel_sub2_2 = new wxPanel(panel_sub2, wxID_ANY, wxDefaultPosition, wxSize(100, 200));
+    panel_sub2_2->SetBackgroundColour(wxColor(120, 120, 120));
 
-    // Add the buttons to the vertical sizer
-    sizerPanelSub2->Add(button_sub2_1, 0, wxEXPAND | wxALL, 5); // Add button_sub2_1 with border
-    sizerPanelSub2->Add(button_sub2_2, 0, wxEXPAND | wxALL, 5); // Add button_sub2_2 with border
+    wxPanel* panel_sub2_3 = new wxPanel(panel_sub2, wxID_ANY, wxDefaultPosition, wxSize(100, 200));
+    panel_sub2_3->SetBackgroundColour(wxColor(120, 120, 120));
 
+    // Create centered text for panel_sub2_1
+    wxStaticText* text_sub2_1 = new wxStaticText(panel_sub2_1, wxID_ANY, "WELCOME TO CITRIC", wxDefaultPosition, wxDefaultSize, wxALIGN_CENTER_HORIZONTAL);
+    text_sub2_1->SetForegroundColour(*wxWHITE); // Set text color
+    text_sub2_1->SetBackgroundColour(wxColour(120, 120, 120)); // Set background color
+
+    // Create the font with larger size and bold
+    wxFont font1 = wxFont(wxFontInfo(18).Bold());
+    // Apply the font to the static text control
+    text_sub2_1->SetFont(font1);
+
+    // Create a vertical box sizer for panel_sub2_1
+    wxBoxSizer* sizerPanelSub2_1 = new wxBoxSizer(wxVERTICAL);
+    panel_sub2_1->SetSizer(sizerPanelSub2_1); // Set the sizer for panel_sub2_1
+
+    // Add a spacer to push the text to the bottom
+    sizerPanelSub2_1->AddStretchSpacer();
+
+    // Add the text to the vertical sizer
+    sizerPanelSub2_1->Add(text_sub2_1, 0, wxALIGN_CENTER_HORIZONTAL | wxBOTTOM, 5); // Add text_sub2_1 with border at the bottom
+
+    // Add the panels to the vertical sizer
+    sizerPanelSub2->Add(panel_sub2_1, 0, wxEXPAND); // Add panel_sub2_1 with border
+    sizerPanelSub2->Add(panel_sub2_2, 0, wxEXPAND); // Add panel_sub2_2 with border
+    sizerPanelSub2->Add(panel_sub2_3, 0, wxEXPAND); // Add panel_sub2_3 with border
+
+    // Create a button for panel_sub2_2
+    wxButton* button_sub2_2 = new wxButton(panel_sub2_2, wxID_ANY, "OPEN WORKSPACE");
+    button_sub2_2->SetMinSize(wxSize(80, 30)); // Set minimum size for the button
+
+    // Create a vertical box sizer for panel_sub2_2 for the button
+    wxBoxSizer* sizerPanelSub2_2 = new wxBoxSizer(wxVERTICAL);
+    panel_sub2_2->SetSizer(sizerPanelSub2_2); // Set the sizer for panel_sub2_2
+    // Add the button to the vertical sizer
+    sizerPanelSub2_2->Add(button_sub2_2, 0, wxEXPAND | wxALL, 10); // Add button_sub2_2 with border
 
     // Add the sub panels to the horizontal sizer
     sizerMiddlePanel->Add(panel_sub1, 1, wxEXPAND); // Add panel_sub1 with border
@@ -107,7 +157,6 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size) 
     sizerMainPanel->AddStretchSpacer(); // Add stretchable space above the text
     sizerMainPanel->AddStretchSpacer(); // Add stretchable space below the text
     panel_main->SetSizer(sizerMainPanel); // Set the sizer for the main panel
-
 
     // BoxSizer Main Instance
     wxBoxSizer* sizermain = new wxBoxSizer(wxVERTICAL); // Changed to vertical sizer
@@ -123,6 +172,7 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size) 
     sizermain->Add(sizerLMR, 1, wxEXPAND);
 
     SetSizerAndFit(sizermain);
+
     Layout(); // Forces immediate layout
     Center(); // Centers the frame on the screen
 
