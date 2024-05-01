@@ -30,13 +30,7 @@ bool ProjectData::Save(wxBitmap bitMap)
     {
         return false;
     }
-
-    std::ifstream imageIFStream(OriginalImagePath);
-
-
-
-
-
+    bitMap.ConvertToImage().SaveFile(OriginalImagePath);
     return true;
 
 
