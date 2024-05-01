@@ -28,6 +28,7 @@ public:
     void RedoAction();
     MainFrame* mainFrame; // Pointer to the main window
 
+
 private:
 
 };
@@ -97,7 +98,7 @@ public:
     void OnCropImage(wxCommandEvent& event);
     void CropImage();
     void OnRotateImage(wxCommandEvent& event);
-    void RotateImage();
+   // void RotateImage();
 
 private:
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
@@ -157,15 +158,16 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     tools->Append(ID_APPLY_ROTATE, "&Rotate the image...\tCtrl-R", "Rotate the current image");
     tools->Append(ID_UNDO, "&Undo...\tCtrl-Z", "Undo the previous action");
     tools->Append(ID_REDO, "&Redo...\tCtrl-Shift-Z", "Redo the previous action");
+    tools->Append(ID_CROP_IMAGE, "&Crop Image");
+    tools->Append(ID_ROTATE_IMAGE, "&Rotate Image");
+
 
     wxMenu* gifFilters = new wxMenu;
     gifFilters->Append(ID_APPLY_GRAYSCALE_GIF, "&Apply Grayscale to GIF...\tCtrl-Shift-G", "Convert the current GIF to grayscale");
     gifFilters->Append(ID_APPLY_BLUR_GIF, "&Apply Blur to GIF...\tCtrl-Shift-B", "Blur the current GIF");
 
 
-    wxMenu* tools = new wxMenu;
-    tools->Append(ID_CROP_IMAGE, "&Crop Image");
-    tools->Append(ID_ROTATE_IMAGE, "&Rotate Image");
+   
 
     wxMenuBar* menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
@@ -322,7 +324,7 @@ void MainFrame::ImportImage() {
     }
 }
 
-void MainFrame::ImportGifImage(const wxString& path) {
+/*void MainFrame::ImportGifImage(const wxString& path) {
     wxAnimation animation;
     if (!animation.LoadFile(path)) {
         wxLogError("Failed to load GIF file.");
@@ -344,7 +346,9 @@ void MainFrame::ImportGifImage(const wxString& path) {
     }
     Layout();
     Refresh();
-}
+}*/
+
+
 
 void MainFrame::OnExportImage(wxCommandEvent &event) {
 

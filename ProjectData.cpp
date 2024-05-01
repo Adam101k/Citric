@@ -3,15 +3,15 @@
 using json = nlohmann::json;
 
 
-bool ProjectData::Save()
+bool ProjectData::Save(wxBitmap bitMap)
 {
 
     //Grab All Data
     json allData;
-    std::ifstream iFileStream(FILELOCATION);
-    if (iFileStream.is_open()) {
-        allData = json::parse(iFileStream);
-        iFileStream.close();
+    std::ifstream jsonIFStream(FILELOCATION);
+    if (jsonIFStream.is_open()) {
+        allData = json::parse(jsonIFStream);
+        jsonIFStream.close();
     }
 
     //Heres where we will put information once we figure out what needs to be saved 
@@ -30,7 +30,17 @@ bool ProjectData::Save()
     {
         return false;
     }
+
+    std::ifstream imageIFStream(OriginalImagePath);
+
+
+
+
+
     return true;
+
+
+
 }
 
 bool ProjectData::Load(const std::string& projectName) {

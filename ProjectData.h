@@ -30,6 +30,9 @@ HOW TO USE
 #include "json.hpp"
 #include <fstream>
 #include <vector>
+#include <wx/wx.h>
+#include <wx/image.h>
+
 using json = nlohmann::json;
 
 //Holds data that can later be saved to a project
@@ -54,22 +57,35 @@ public:
 	void DeleteProject(std::string name);
 
 	//Saves the data to a given file location
-	bool Save();
+	bool Save(wxBitmap bitMap);
 	//Searches Saved Data for given project name (string) and puts the information into this project data
 	bool Load(const std::string& projectName);
 
 	//Returns a vector with the names of all projects saved so far
 	std::vector<std::string> GetAllNames();
 
+
+	
+
 private:
 	//Need to plug in path for where file will go
 	const std::string FILELOCATION = "ProjectsData.json";
+	std::string OriginalImagePath;
 	std::string name_;
 
 	json myJson_{
 		{"Name", name_},
 		{"GreyScale", false},
-		{"Blured", false}
+		{"GifGreyScale", false},
+		{"Blured", false},
+		{"GifBlur", false},
+		{"Croped", false },
+		{"CropX", 0},
+		{"CropY", 0},
+		{"Rotation Angle", 0.0},
+		{"Dim",false },
+		{"Bright",false},
+		{"Pixalted" , false},
 	};
 };
 
