@@ -305,8 +305,8 @@ void MainFrame::OnExportImage(wxCommandEvent& event) {
     wxFileDialog saveDialog(this, "Save Image File", "", "", "Image files(*.bmp; *.png; *.jpg; *.gif) | *.bmp; *.png; *.jpg *.gif;",
         wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
-    if (!originalImage.IsOk()) {
-        wxLogError("No Avalible Image to Save");
+    if (!originalImage.IsOk() && !animationCtrl) {
+        wxLogError("No Available Image or Gif to Save");
         return;
     }
 
@@ -314,10 +314,18 @@ void MainFrame::OnExportImage(wxCommandEvent& event) {
         return;
     }
 
-    wxString filePath = saveDialog.GetPath();
+    // If there's an image, export the image, if not, then it's a gif cause the error catcher would've noticed otherwise
+    if (originalImage.IsOk()) {
+        wxString filePath = saveDialog.GetPath();
 
-    wxBitmap bitmap = imageDisplay->GetBitmap();
-    bitmap.ConvertToImage().SaveFile(filePath);
+        wxBitmap bitmap = imageDisplay->GetBitmap();
+        bitmap.ConvertToImage().SaveFile(filePath);
+    }
+    else {
+        wxLogError("Gif Exporting not supported currently!");
+    }
+
+
 
 }
 
