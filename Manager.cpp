@@ -5,6 +5,7 @@
 #include <wx/statbmp.h>
 #include <wx/animate.h>
 #include <stack>
+#include <wx/button.h>
 
 class MainFrame; // Forward declaration
 
@@ -25,6 +26,7 @@ public:
     void RotateImage();
     void UndoAction();
     void RedoAction();
+
     MainFrame* mainFrame; // Pointer to the main window
 
 private:
@@ -90,7 +92,12 @@ public:
     void BlurGif();
     void OnAnimationTimer(wxTimerEvent& event);
 
+    // Advanced GUI button stuff
+    void BindButtonEvents();
+    void AddButtonsToSizer(wxGridSizer* gridSizer);
+
 private:
+    wxPanel* buttonPanel;
     wxStaticBitmap* imageDisplay; // Pointer to the control where the image will be displayed
     wxAnimationCtrl* animationCtrl; // Control for displaying animated GIFs
 
@@ -111,66 +118,88 @@ private:
 };
 
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
-EVT_MENU(ID_IMPORT_IMAGE, MainFrame::OnMenuImportImage)
-EVT_MENU(wxID_SAVE, MainFrame::OnExportImage)
-EVT_MENU(ID_CLEAR_IMAGES, MainFrame::OnMenuClearEffects)
-EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
-EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
-EVT_MENU(ID_APPLY_GRAYSCALE_GIF, MainFrame::OnMenuApplyGrayscaleGif)
-EVT_MENU(ID_APPLY_BLUR_GIF, MainFrame::OnMenuApplyBlurGif)
-EVT_MENU(ID_APPLY_DIM,MainFrame::OnMenuApplyDim)
-EVT_MENU(ID_APPLY_LIGHTEN,MainFrame::OnMenuApplyLighten)
-EVT_MENU(ID_APPLY_PIXELATE,MainFrame::OnMenuApplyPixelate)
-EVT_MENU(ID_APPLY_ROTATE,MainFrame::OnMenuApplyRotate)
-EVT_MENU(ID_UNDO,MainFrame::OnMenuApplyUndo)
-EVT_MENU(ID_REDO,MainFrame::OnMenuApplyRedo)
-EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
+    EVT_MENU(ID_IMPORT_IMAGE, MainFrame::OnMenuImportImage)
+    EVT_MENU(wxID_SAVE, MainFrame::OnExportImage)
+    EVT_MENU(ID_CLEAR_IMAGES, MainFrame::OnMenuClearEffects)
+    EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
+    EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
+    EVT_MENU(ID_APPLY_GRAYSCALE_GIF, MainFrame::OnMenuApplyGrayscaleGif)
+    EVT_MENU(ID_APPLY_BLUR_GIF, MainFrame::OnMenuApplyBlurGif)
+    EVT_MENU(ID_APPLY_DIM,MainFrame::OnMenuApplyDim)
+    EVT_MENU(ID_APPLY_LIGHTEN,MainFrame::OnMenuApplyLighten)
+    EVT_MENU(ID_APPLY_PIXELATE,MainFrame::OnMenuApplyPixelate)
+    EVT_MENU(ID_APPLY_ROTATE,MainFrame::OnMenuApplyRotate)
+    EVT_MENU(ID_UNDO,MainFrame::OnMenuApplyUndo)
+    EVT_MENU(ID_REDO,MainFrame::OnMenuApplyRedo)
+    EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
 
 MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
-    : wxFrame(nullptr, wxID_ANY, title, pos, size), imageDisplay(nullptr), animationCtrl(nullptr) {
-    wxMenu* menuFile = new wxMenu;
-    menuFile->Append(ID_IMPORT_IMAGE, "&Import Image...\tCtrl-I", "Import an image file");
-    menuFile->Append(wxID_SAVE, "&Save Image...\tCtrl-S", "Save your Image"); 
+    : wxFrame(nullptr, wxID_ANY, title, pos, size) {
+    wxPanel* imagePanel = new wxPanel(this, wxID_ANY);
+    wxBoxSizer* imageSizer = new wxBoxSizer(wxVERTICAL);
+    imageDisplay = new wxStaticBitmap(imagePanel, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE);
+    imageSizer->Add(imageDisplay, 1, wxEXPAND | wxALL, 5);
+    imagePanel->SetSizer(imageSizer);
 
+    buttonPanel = new wxPanel(this, wxID_ANY);
+    wxGridSizer* gridSizer = new wxGridSizer(3, 4, 10, 10); // 3 rows, 4 columns
 
-    wxMenu* filters = new wxMenu;
-    filters->Append(ID_CLEAR_IMAGES, "&Clear All Visual Effects...\tCtrl-C", "Clear all effects from current image");
-    filters->Append(ID_APPLY_GRAYSCALE, "&Apply Grayscale to Image...\tCtrl-G", "Convert the current image to grayscale");
-    filters->Append(ID_APPLY_BLUR, "&Apply Blur to Image...\tCtrl-B", "Blur the current image");
-    filters->Append(ID_APPLY_DIM, "&Apply Dim to image...\tCtrl-D", "Dim the current image");
-    filters->Append(ID_APPLY_LIGHTEN, "&Apply Lighten to image...\tCtrl-L", "Lighten the current image");
-    filters->Append(ID_APPLY_PIXELATE, "&Pixelate Image...\tCtrl-P", "Pixelate the current image");
+    // Add buttons to the grid sizer
+    AddButtonsToSizer(gridSizer);
 
-    wxMenu* tools = new wxMenu;
-    tools->Append(ID_APPLY_ROTATE, "&Rotate the image...\tCtrl-R", "Rotate the current image");
-    tools->Append(ID_UNDO, "&Undo...\tCtrl-Z", "Undo the previous action");
-    tools->Append(ID_REDO, "&Redo...\tCtrl-Shift-Z", "Redo the previous action");
+    wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
+    buttonSizer->Add(gridSizer, 0, wxALIGN_CENTER_HORIZONTAL | wxBOTTOM, 10);
+    buttonPanel->SetSizer(buttonSizer);
 
-    wxMenu* gifFilters = new wxMenu;
-    gifFilters->Append(ID_APPLY_GRAYSCALE_GIF, "&Apply Grayscale to GIF...\tCtrl-Shift-G", "Convert the current GIF to grayscale");
-    gifFilters->Append(ID_APPLY_BLUR_GIF, "&Apply Blur to GIF...\tCtrl-Shift-B", "Blur the current GIF");
+    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+    mainSizer->Add(imagePanel, 1, wxEXPAND);
+    mainSizer->Add(buttonPanel, 0, wxALIGN_CENTER_HORIZONTAL | wxALIGN_BOTTOM);
 
+    SetSizer(mainSizer);
 
-    wxMenuBar* menuBar = new wxMenuBar;
-    menuBar->Append(menuFile, "&File");
-    menuBar->Append(filters, "&Image Filters");
-    menuBar->Append(gifFilters, "&EXPERIMENTAL - Gif Filters");
-    menuBar->Append(tools, "&Tools");
+    int screenWidth, screenHeight;
+    wxDisplaySize(&screenWidth, &screenHeight);
 
-    SetMenuBar(menuBar);
+    // Set full-screen and ensure the window does not go below a specific size
+    SetMinSize(wxSize(screenWidth * 0.75, screenHeight * 0.75));
+    Maximize();
 
-    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-    imageDisplay = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
-    sizer->Add(imageDisplay, 1, wxEXPAND | wxALL, 5);
-    SetSizer(sizer);
+    BindButtonEvents();
 
+    Layout();
     Centre();
+}
 
-    currentFrameIndex = 0;
-    animationTimer = new wxTimer(this);
-    Bind(wxEVT_TIMER, &MainFrame::OnAnimationTimer, this);
+void MainFrame::AddButtonsToSizer(wxGridSizer* gridSizer) {
+    // Helper function to add buttons to the sizer
+    gridSizer->Add(new wxButton(buttonPanel, ID_IMPORT_IMAGE, "Import Image"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_APPLY_GRAYSCALE, "Grayscale"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_APPLY_BLUR, "Blur"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_CLEAR_IMAGES, "Clear Effects"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_APPLY_GRAYSCALE_GIF, "Grayscale GIF"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_APPLY_BLUR_GIF, "Blur GIF"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_APPLY_DIM, "Dim"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_APPLY_LIGHTEN, "Lighten"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_APPLY_PIXELATE, "Pixelate"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_APPLY_ROTATE, "Rotate"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_UNDO, "Undo"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_REDO, "Redo"), 1, wxEXPAND);
+}
 
+void MainFrame::BindButtonEvents() {
+    Bind(wxEVT_BUTTON, &MainFrame::OnMenuImportImage, this, ID_IMPORT_IMAGE);
+    Bind(wxEVT_BUTTON, &MainFrame::OnMenuApplyGrayscale, this, ID_APPLY_GRAYSCALE);
+    Bind(wxEVT_BUTTON, &MainFrame::OnMenuApplyBlur, this, ID_APPLY_BLUR);
+    Bind(wxEVT_BUTTON, &MainFrame::OnMenuClearEffects, this, ID_CLEAR_IMAGES);
+    Bind(wxEVT_BUTTON, &MainFrame::OnMenuApplyGrayscaleGif, this, ID_APPLY_GRAYSCALE_GIF);
+    Bind(wxEVT_BUTTON, &MainFrame::OnMenuApplyBlurGif, this, ID_APPLY_BLUR_GIF);
+    Bind(wxEVT_BUTTON, &MainFrame::OnMenuApplyDim, this, ID_APPLY_DIM);
+    Bind(wxEVT_BUTTON, &MainFrame::OnMenuApplyLighten, this, ID_APPLY_LIGHTEN);
+    Bind(wxEVT_BUTTON, &MainFrame::OnMenuApplyPixelate, this, ID_APPLY_PIXELATE);
+    Bind(wxEVT_BUTTON, &MainFrame::OnMenuApplyRotate, this, ID_APPLY_ROTATE);
+    Bind(wxEVT_BUTTON, &MainFrame::OnMenuApplyUndo, this, ID_UNDO);
+    Bind(wxEVT_BUTTON, &MainFrame::OnMenuApplyRedo, this, ID_REDO);
 }
 
 void MainFrame::OnMenuImportImage(wxCommandEvent& event) {
@@ -249,29 +278,19 @@ void MainFrame::OnMenuApplyRedo(wxCommandEvent& event) {
     RedoAction();
 }
 
+
 void MainFrame::OnMouseWheel(wxMouseEvent& event) {
-    if (!currentImage.IsOk()) {
-        // Make sure there's a valid image loaded
-        currentImage = imageDisplay->GetBitmap().ConvertToImage();
-    }
+    if (!currentImage.IsOk()) return;
 
-    int rotation = event.GetWheelRotation();
-    if (rotation > 0) {
-        zoomFactor *= 1.1;  // Zoom in
-    }
-    else {
-        zoomFactor *= 0.9;  // Zoom out
-    }
+    double factor = (event.GetWheelRotation() > 0) ? 1.1 : 0.9;
+    zoomFactor *= factor;
+    wxSize newSize = wxSize(currentImage.GetWidth() * zoomFactor, currentImage.GetHeight() * zoomFactor);
 
-    if (imageDisplay && currentImage.IsOk()) {
-        wxSize originalSize = currentImage.GetSize();
-        wxSize newSize(static_cast<int>(originalSize.x * zoomFactor), static_cast<int>(originalSize.y * zoomFactor));
-        if (newSize.x > 0 && newSize.y > 0) {
-            wxImage scaledImage = currentImage.Scale(newSize.x, newSize.y, wxIMAGE_QUALITY_HIGH);
-            imageDisplay->SetBitmap(wxBitmap(scaledImage));
-            Layout();
-            Refresh();
-        }
+    if (newSize.x > 1 && newSize.y > 1) {
+        wxImage scaledImage = currentImage.Scale(newSize.x, newSize.y, wxIMAGE_QUALITY_HIGH);
+        imageDisplay->SetBitmap(wxBitmap(scaledImage));
+        imageDisplay->Layout(); // Re-layout the image panel
+        imageDisplay->Centre();
     }
 }
 
@@ -305,8 +324,8 @@ void MainFrame::OnExportImage(wxCommandEvent& event) {
     wxFileDialog saveDialog(this, "Save Image File", "", "", "Image files(*.bmp; *.png; *.jpg; *.gif) | *.bmp; *.png; *.jpg *.gif;",
         wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
-    if (!originalImage.IsOk()) {
-        wxLogError("No Avalible Image to Save");
+    if (!originalImage.IsOk() && !animationCtrl) {
+        wxLogError("No Available Image or Gif to Save");
         return;
     }
 
@@ -314,10 +333,18 @@ void MainFrame::OnExportImage(wxCommandEvent& event) {
         return;
     }
 
-    wxString filePath = saveDialog.GetPath();
+    // If there's an image, export the image, if not, then it's a gif cause the error catcher would've noticed otherwise
+    if (originalImage.IsOk()) {
+        wxString filePath = saveDialog.GetPath();
 
-    wxBitmap bitmap = imageDisplay->GetBitmap();
-    bitmap.ConvertToImage().SaveFile(filePath);
+        wxBitmap bitmap = imageDisplay->GetBitmap();
+        bitmap.ConvertToImage().SaveFile(filePath);
+    }
+    else {
+        wxLogError("Gif Exporting not supported currently!");
+    }
+
+
 
 }
 
@@ -329,6 +356,8 @@ void MainFrame::UpdateImageDisplay(const wxImage& image) {
     imageDisplay->SetBitmap(wxBitmap(scaledImage));
     imageDisplay->Show();
     if (animationCtrl) animationCtrl->Hide();
+
+    imageDisplay->Centre();
     Layout();
     Refresh();
 }
@@ -549,7 +578,7 @@ Manager::Manager() {
     int windowWidth = screenWidth * 0.75;
     int windowHeight = screenHeight * 0.75;
 
-    mainFrame = new MainFrame("Image Editor", wxDefaultPosition, wxSize(windowWidth, windowHeight));
+    mainFrame = new MainFrame("Citric", wxDefaultPosition, wxSize(windowWidth, windowHeight));
 }
 
 // Show the main window
