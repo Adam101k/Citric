@@ -578,7 +578,7 @@ Manager::Manager() {
     int windowWidth = screenWidth * 0.75;
     int windowHeight = screenHeight * 0.75;
 
-    mainFrame = new MainFrame("Image Editor", wxDefaultPosition, wxSize(windowWidth, windowHeight));
+    mainFrame = new MainFrame("Citric", wxDefaultPosition, wxSize(windowWidth, windowHeight));
 }
 
 // Show the main window
