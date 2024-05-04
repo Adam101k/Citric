@@ -94,6 +94,7 @@ public:
 
     // Advanced GUI button stuff
     void BindButtonEvents();
+    void AddButtonsToSizer(wxGridSizer* gridSizer);
 
 private:
     wxPanel* buttonPanel;
@@ -137,13 +138,41 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     : wxFrame(nullptr, wxID_ANY, title, pos, size) {
     wxPanel* imagePanel = new wxPanel(this, wxID_ANY);
     wxBoxSizer* imageSizer = new wxBoxSizer(wxVERTICAL);
-    imageDisplay = new wxStaticBitmap(imagePanel, wxID_ANY, wxNullBitmap);
+    imageDisplay = new wxStaticBitmap(imagePanel, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE);
     imageSizer->Add(imageDisplay, 1, wxEXPAND | wxALL, 5);
     imagePanel->SetSizer(imageSizer);
 
     buttonPanel = new wxPanel(this, wxID_ANY);
-    wxFlexGridSizer* gridSizer = new wxFlexGridSizer(3, 4, 10, 10); // 3 rows, 4 columns
+    wxGridSizer* gridSizer = new wxGridSizer(3, 4, 10, 10); // 3 rows, 4 columns
 
+    // Add buttons to the grid sizer
+    AddButtonsToSizer(gridSizer);
+
+    wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
+    buttonSizer->Add(gridSizer, 0, wxALIGN_CENTER_HORIZONTAL | wxBOTTOM, 10);
+    buttonPanel->SetSizer(buttonSizer);
+
+    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+    mainSizer->Add(imagePanel, 1, wxEXPAND);
+    mainSizer->Add(buttonPanel, 0, wxALIGN_CENTER_HORIZONTAL | wxALIGN_BOTTOM);
+
+    SetSizer(mainSizer);
+
+    int screenWidth, screenHeight;
+    wxDisplaySize(&screenWidth, &screenHeight);
+
+    // Set full-screen and ensure the window does not go below a specific size
+    SetMinSize(wxSize(screenWidth * 0.75, screenHeight * 0.75));
+    Maximize();
+
+    BindButtonEvents();
+
+    Layout();
+    Centre();
+}
+
+void MainFrame::AddButtonsToSizer(wxGridSizer* gridSizer) {
+    // Helper function to add buttons to the sizer
     gridSizer->Add(new wxButton(buttonPanel, ID_IMPORT_IMAGE, "Import Image"), 1, wxEXPAND);
     gridSizer->Add(new wxButton(buttonPanel, ID_APPLY_GRAYSCALE, "Grayscale"), 1, wxEXPAND);
     gridSizer->Add(new wxButton(buttonPanel, ID_APPLY_BLUR, "Blur"), 1, wxEXPAND);
@@ -156,17 +185,6 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
     gridSizer->Add(new wxButton(buttonPanel, ID_APPLY_ROTATE, "Rotate"), 1, wxEXPAND);
     gridSizer->Add(new wxButton(buttonPanel, ID_UNDO, "Undo"), 1, wxEXPAND);
     gridSizer->Add(new wxButton(buttonPanel, ID_REDO, "Redo"), 1, wxEXPAND);
-
-    buttonPanel->SetSizer(gridSizer);
-
-    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
-    mainSizer->Add(imagePanel, 1, wxEXPAND);
-    mainSizer->Add(buttonPanel, 0, wxEXPAND);
-
-    SetSizerAndFit(mainSizer);
-    Centre();
-
-    BindButtonEvents();
 }
 
 void MainFrame::BindButtonEvents() {
@@ -272,6 +290,7 @@ void MainFrame::OnMouseWheel(wxMouseEvent& event) {
         wxImage scaledImage = currentImage.Scale(newSize.x, newSize.y, wxIMAGE_QUALITY_HIGH);
         imageDisplay->SetBitmap(wxBitmap(scaledImage));
         imageDisplay->Layout(); // Re-layout the image panel
+        imageDisplay->Centre();
     }
 }
 
@@ -337,6 +356,8 @@ void MainFrame::UpdateImageDisplay(const wxImage& image) {
     imageDisplay->SetBitmap(wxBitmap(scaledImage));
     imageDisplay->Show();
     if (animationCtrl) animationCtrl->Hide();
+
+    imageDisplay->Centre();
     Layout();
     Refresh();
 }
