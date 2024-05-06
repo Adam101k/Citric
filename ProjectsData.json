@@ -1,0 +1,38 @@
+{
+    "": {
+        "BaseImage": "_Base.BMP",
+        "Blured": false,
+        "CropX": 0.0,
+        "CropY": 0.0,
+        "Dim": false,
+        "GreyScale": false,
+        "Lighten": false,
+        "Name": "",
+        "Pixelate": false,
+        "Rotate": 0
+    },
+    "P": {
+        "BaseImage": "P_Base.BMP",
+        "Blured": false,
+        "CropX": 0.0,
+        "CropY": 0.0,
+        "Dim": false,
+        "GreyScale": false,
+        "Lighten": false,
+        "Name": "P",
+        "Pixelate": false,
+        "Rotate": 0
+    },
+    "TestingSave": {
+        "BaseImage": "TestingSave_Base.BMP",
+        "Blured": false,
+        "CropX": 0.0,
+        "CropY": 0.0,
+        "Dim": false,
+        "GreyScale": true,
+        "Lighten": false,
+        "Name": "TestingSave",
+        "Pixelate": false,
+        "Rotate": 0
+    }
+}

@@ -6,6 +6,8 @@
 #include <wx/animate.h>
 #include <stack>
 #include <wx/button.h>
+#include "ProjectData.h"
+#include <wx/choice.h>
 
 class MainFrame; // Forward declaration
 
@@ -46,7 +48,11 @@ enum {
     ID_APPLY_PIXELATE,
     ID_APPLY_ROTATE,
     ID_UNDO,
-    ID_REDO
+    ID_REDO,
+    ID_SAVE,
+    ID_LOAD_DATA,
+    ID_EXPORT,
+    ID_DELETE,
 };
 
 // MainFrame class declaration
@@ -60,7 +66,12 @@ public:
     void ImportGifImage(const wxString& path);  // New method for GIFs
     void UpdateImageDisplay(const wxImage& image); // Update the displayed image
     void ClearPreviousDisplay(); // Helper method to clear any existing displays
-    
+    void OnSaveProject(wxCommandEvent& event);
+    void SaveProject();
+    void OnLoadProject(wxCommandEvent& event);
+    void LoadProject();
+    void OnDeleteProject(wxCommandEvent& event);
+
 
     // Image Visual Effects
     void OnMenuClearEffects(wxCommandEvent& event);
@@ -114,24 +125,30 @@ private:
     int rotations = 0;//Rotation count for rotate the image multiple times
     std::stack<wxImage> previousImage; //Stack that stores previous states of the image
     std::stack<wxImage> nextImage; //Stack that stores next state of the image
+
+    ProjectData currentData = ProjectData();
+
     wxDECLARE_EVENT_TABLE();
 };
 
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
-    EVT_MENU(ID_IMPORT_IMAGE, MainFrame::OnMenuImportImage)
-    EVT_MENU(wxID_SAVE, MainFrame::OnExportImage)
-    EVT_MENU(ID_CLEAR_IMAGES, MainFrame::OnMenuClearEffects)
-    EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
-    EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
-    EVT_MENU(ID_APPLY_GRAYSCALE_GIF, MainFrame::OnMenuApplyGrayscaleGif)
-    EVT_MENU(ID_APPLY_BLUR_GIF, MainFrame::OnMenuApplyBlurGif)
-    EVT_MENU(ID_APPLY_DIM,MainFrame::OnMenuApplyDim)
-    EVT_MENU(ID_APPLY_LIGHTEN,MainFrame::OnMenuApplyLighten)
-    EVT_MENU(ID_APPLY_PIXELATE,MainFrame::OnMenuApplyPixelate)
-    EVT_MENU(ID_APPLY_ROTATE,MainFrame::OnMenuApplyRotate)
-    EVT_MENU(ID_UNDO,MainFrame::OnMenuApplyUndo)
-    EVT_MENU(ID_REDO,MainFrame::OnMenuApplyRedo)
-    EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
+EVT_MENU(ID_IMPORT_IMAGE, MainFrame::OnMenuImportImage)
+EVT_MENU(ID_EXPORT, MainFrame::OnExportImage)
+EVT_MENU(ID_CLEAR_IMAGES, MainFrame::OnMenuClearEffects)
+EVT_MENU(ID_APPLY_GRAYSCALE, MainFrame::OnMenuApplyGrayscale)
+EVT_MENU(ID_APPLY_BLUR, MainFrame::OnMenuApplyBlur)
+EVT_MENU(ID_APPLY_GRAYSCALE_GIF, MainFrame::OnMenuApplyGrayscaleGif)
+EVT_MENU(ID_APPLY_BLUR_GIF, MainFrame::OnMenuApplyBlurGif)
+EVT_MENU(ID_APPLY_DIM, MainFrame::OnMenuApplyDim)
+EVT_MENU(ID_APPLY_LIGHTEN, MainFrame::OnMenuApplyLighten)
+EVT_MENU(ID_APPLY_PIXELATE, MainFrame::OnMenuApplyPixelate)
+EVT_MENU(ID_APPLY_ROTATE, MainFrame::OnMenuApplyRotate)
+EVT_MENU(ID_UNDO, MainFrame::OnMenuApplyUndo)
+EVT_MENU(ID_REDO, MainFrame::OnMenuApplyRedo)
+EVT_MENU(ID_SAVE, MainFrame::OnSaveProject)
+EVT_MENU(ID_LOAD_DATA, MainFrame::OnLoadProject)
+EVT_MENU(ID_DELETE, MainFrame::OnDeleteProject)
+EVT_MOUSEWHEEL(MainFrame::OnMouseWheel)
 wxEND_EVENT_TABLE()
 
 MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
@@ -185,6 +202,10 @@ void MainFrame::AddButtonsToSizer(wxGridSizer* gridSizer) {
     gridSizer->Add(new wxButton(buttonPanel, ID_APPLY_ROTATE, "Rotate"), 1, wxEXPAND);
     gridSizer->Add(new wxButton(buttonPanel, ID_UNDO, "Undo"), 1, wxEXPAND);
     gridSizer->Add(new wxButton(buttonPanel, ID_REDO, "Redo"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_SAVE, "Save"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_EXPORT, "Export"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_LOAD_DATA, "Load"), 1, wxEXPAND);
+    gridSizer->Add(new wxButton(buttonPanel, ID_DELETE, "DeleteProject"), 1, wxEXPAND);
 }
 
 void MainFrame::BindButtonEvents() {
@@ -200,6 +221,10 @@ void MainFrame::BindButtonEvents() {
     Bind(wxEVT_BUTTON, &MainFrame::OnMenuApplyRotate, this, ID_APPLY_ROTATE);
     Bind(wxEVT_BUTTON, &MainFrame::OnMenuApplyUndo, this, ID_UNDO);
     Bind(wxEVT_BUTTON, &MainFrame::OnMenuApplyRedo, this, ID_REDO);
+    Bind(wxEVT_BUTTON, &MainFrame::OnExportImage, this, ID_EXPORT);
+    Bind(wxEVT_BUTTON, &MainFrame::OnSaveProject, this, ID_SAVE);
+    Bind(wxEVT_BUTTON, &MainFrame::OnLoadProject, this, ID_LOAD_DATA);
+    Bind(wxEVT_BUTTON, &MainFrame::OnDeleteProject, this, ID_DELETE);
 }
 
 void MainFrame::OnMenuImportImage(wxCommandEvent& event) {
@@ -250,7 +275,7 @@ void MainFrame::ImportGifImage(const wxString& path) {
     if (animation.GetFrameCount() > 1) {
         if (!animationCtrl)
             animationCtrl = new wxAnimationCtrl(this, wxID_ANY);
-        
+
         animationCtrl->SetAnimation(animation);
         animationCtrl->Play();
         animationCtrl->Show();
@@ -278,6 +303,13 @@ void MainFrame::OnMenuApplyRedo(wxCommandEvent& event) {
     RedoAction();
 }
 
+void MainFrame::OnSaveProject(wxCommandEvent& event) {
+    SaveProject();
+}
+
+void MainFrame::OnLoadProject(wxCommandEvent& event) {
+    LoadProject();
+}
 
 void MainFrame::OnMouseWheel(wxMouseEvent& event) {
     if (!currentImage.IsOk()) return;
@@ -343,9 +375,64 @@ void MainFrame::OnExportImage(wxCommandEvent& event) {
     else {
         wxLogError("Gif Exporting not supported currently!");
     }
+}
 
+void MainFrame::SaveProject() {
+    wxString name = wxGetTextFromUser(wxString("Save Project"), wxString("Save as:"), wxString(currentData.GetName()));
+    currentData.SetName(name.ToStdString());
+    currentData.SetBaseImage(originalImage);
+    currentData.Save();
+}
 
+void MainFrame::LoadProject() {
 
+    std::vector<wxString> projectNames = currentData.GetAllProjectNames();
+    wxString selectedProject;
+
+    wxString name = wxGetTextFromUser(wxString("Load Project"), wxString("Enter Name to Load"), wxString(currentData.GetName()));
+
+    currentData.Load(name.ToStdString());
+
+    wxString path = wxString(currentData.getBaseImagePath());
+    wxImage image(path, wxBITMAP_TYPE_ANY);
+    if (!image.IsOk()) {
+        wxLogError("Cannot open file '%s'.", path);
+        return;
+    }
+
+    ClearPreviousDisplay(); // Clear any existing content
+
+    if (path.EndsWith(".gif")) {
+        ImportGifImage(path);
+    }
+    else {
+        originalImage = image;
+        UpdateImageDisplay(image);
+    }
+    if (currentData.GetGreyScale()) {
+        GrayscaleImage();
+    }
+    if (currentData.GetBlurred()) {
+        BlurImage();
+    }
+    if (currentData.GetDim()) {
+        DimImage();
+    }
+    if (currentData.GetLighten()) {
+        LightenImage();
+    }
+    if (currentData.GetPixelate()) {
+        PixelateImage();
+    }
+    for (int i = 1; i < currentData.GetRotate(); i++);
+    {
+        RotateImage();
+    }
+}
+
+void MainFrame::OnDeleteProject(wxCommandEvent& event) {
+    wxString name = wxGetTextFromUser(wxString("DeleteProject"), wxString("Enter Name to Delete"), wxString(currentData.GetName()));
+    currentData.Delete(name);
 }
 
 void MainFrame::UpdateImageDisplay(const wxImage& image) {
@@ -382,6 +469,9 @@ void MainFrame::ClearAllEffects() {
         return;
     }
     UpdateImageDisplay(originalImage);
+
+    ProjectData resetData = ProjectData(currentData.GetName());
+    currentData = resetData;
 }
 
 void MainFrame::GrayscaleImage() {
@@ -392,6 +482,7 @@ void MainFrame::GrayscaleImage() {
     previousImage.push(currentImage);
     wxImage grayImage = originalImage.ConvertToGreyscale();
     UpdateImageDisplay(grayImage);
+    currentData.SetGreyScale(true);
 }
 
 void MainFrame::BlurImage() {
@@ -402,6 +493,7 @@ void MainFrame::BlurImage() {
     previousImage.push(currentImage);
     wxImage blurImage = originalImage.Blur(10);
     UpdateImageDisplay(blurImage);
+    currentData.SetBlurred(true);
 }
 
 void MainFrame::GrayscaleGif() {
@@ -427,6 +519,8 @@ void MainFrame::GrayscaleGif() {
     // Reset the current frame index and restart the timer
     currentFrameIndex = 0;
     animationTimer->Start(100); // Adjust frame delay as needed
+
+    currentData.SetGreyScale(true);
 }
 
 void MainFrame::BlurGif() {
@@ -452,6 +546,8 @@ void MainFrame::BlurGif() {
     // Reset the current frame index and restart the timer
     currentFrameIndex = 0;
     animationTimer->Start(100); // Adjust frame delay as needed
+
+    currentData.SetBlurred(true);
 }
 
 void MainFrame::OnAnimationTimer(wxTimerEvent& event) {
@@ -481,6 +577,7 @@ void MainFrame::DimImage() {
     previousImage.push(currentImage);
     wxImage dimImage = originalImage.ConvertToDisabled(10);
     UpdateImageDisplay(dimImage);
+    currentData.SetDim(true);
 }
 
 void MainFrame::LightenImage() {
@@ -491,12 +588,13 @@ void MainFrame::LightenImage() {
     previousImage.push(currentImage);
     wxImage lightenImage = originalImage.ChangeLightness(110);
     UpdateImageDisplay(lightenImage);
+    currentData.SetLighten(true);
 }
 
 void MainFrame::PixelateImage() {
     if (!originalImage.IsOk()) {
         wxLogError("No Valid Image In Workspace.");
-            return;
+        return;
     }
     previousImage.push(currentImage);
     //Pixel size
@@ -507,8 +605,8 @@ void MainFrame::PixelateImage() {
     //get colors of pixels
     for (int y = 0; y < pixelImage.GetHeight(); y += pixel) {
         for (int x = 0; x < pixelImage.GetWidth(); x += pixel) {
-            int redTotal = 0; 
-            int greenTotal = 0; 
+            int redTotal = 0;
+            int greenTotal = 0;
             int blueTotal = 0;
             int totalPixel = 0;
 
@@ -534,6 +632,8 @@ void MainFrame::PixelateImage() {
         }
     }
     UpdateImageDisplay(pixelImage);
+
+    currentData.SetPixilate(true);
 }
 
 void MainFrame::RotateImage() {
@@ -545,6 +645,7 @@ void MainFrame::RotateImage() {
     rotations++;
     wxImage rotateImage = currentImage.Rotate90(true);
     UpdateImageDisplay(rotateImage);
+    currentData.Rotate();
 }
 
 void MainFrame::UndoAction() {
